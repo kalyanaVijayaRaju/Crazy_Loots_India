@@ -65,11 +65,50 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Services Layer ]        -> Core business logic, orchestration, validation rules
          |
          v
+ [ Merchant Layer ]        -> Standardized Merchant Abstraction (Adapter, Factory, DTOs)
+         |
+         v
  [ Repositories Layer ]    -> Data access abstraction, database queries (Mongoose abstraction)
          |
          v
  [ Models / Storage Layer ] -> Database schema definition & persistence (MongoDB)
 ```
+
+---
+
+## Merchant Abstraction Layer Architecture
+
+To prevent e-commerce platform variance (Amazon vs. Flipkart vs. Myntra) from polluting the application core, all platform integrations pass through the **Merchant Abstraction Layer**.
+
+### 1. Adapter & DTO Flow
+
+```
+   Raw E-Commerce Platform Data
+  (Amazon, Flipkart, Myntra, etc.)
+               │
+               ▼
+     [ Merchant Adapter ] ───────► (Normalizes schema variance)
+               │
+               ▼
+        [ ProductDTO ]    ───────► (Uniform contract)
+               │
+               ▼
+  [ Core Application Engine ] ────► (Zero knowledge of platform specifics)
+```
+
+### 2. Why Every Merchant Returns `ProductDTO`
+
+1. **Decoupling Business Logic**: The deal discovery engine, price tracking algorithm, and Telegram publisher require a single, predictable interface (`title`, `currentPrice`, `originalPrice`, `discountPercentage`, `productUrl`).
+2. **Zero Code Churn on Adding Merchants**: Integrating a 10th merchant (e.g. Nykaa or Croma) requires writing only the platform adapter. No business service or repository requires modification.
+3. **Strict Validation & Type Safety**: `ProductDTO` validates numerical bounds, auto-computes discount percentages, and normalizes merchant names at the boundary layer.
+
+---
+
+### 3. Design Patterns Applied
+
+- **Adapter Pattern**: `MerchantAdapter` defines the common interface contract. Each e-commerce store (`AmazonAdapter`, `FlipkartAdapter`, `MyntraAdapter`) implements platform-specific URL regex, affiliate tags, and scraping normalization.
+- **Factory Pattern**: `MerchantFactory` resolves the appropriate adapter instance either by merchant slug (`'amazon'`) or by auto-matching raw product web links (`getAdapterByUrl(url)`).
+- **Registry Pattern**: `MerchantRegistry` dynamically registers and manages supported merchant adapters.
 
 ---
 
@@ -103,14 +142,6 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 | **PriceAlert** | Prevents duplicate deal broadcasts | `product`, `{ status, targetPrice }` | Fast alert threshold evaluation |
 | **DealHistory** | Full audit log of all detected deals | `{ product, detectedAt: -1 }`, `{ merchant, published }` | Log retention & deal trend analytics |
 | **ScrapeJob** | Scraper execution performance log | `{ merchant, startedAt: -1 }`, `{ status, startedAt: -1 }` | Scraper diagnostics & uptime auditing |
-
----
-
-## Repository Layer Architecture
-
-The persistence layer strictly adheres to the **Repository Pattern**:
-- **BaseRepository**: Provides generic MongoDB CRUD operations (`create`, `findById`, `findOne`, `findMany`, `update`, `delete`, `paginate`, `count`, `exists`).
-- **Domain Repositories**: Encapsulate Mongoose queries. Services never import or call Mongoose models directly.
 
 ---
 
