@@ -62,6 +62,9 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Controllers Layer ]     -> Request validation, response formatting, status codes (Thin layer)
          |
          v
+ [ Pipeline Layer ]        -> Coordinator, Middleware Chain, Policies, Task/Result Builders
+         |
+         v
  [ Core Engine Layer ]     -> In-process EventBus, QueueManager, StateMachine, Context, DI Container
          |
          v
@@ -79,95 +82,35 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 
 ---
 
-## Core Engine Foundation Architecture
+## Monitoring Pipeline Architecture
 
-The Core Engine provides reusable internal infrastructure designed for zero-dependency local execution while enabling zero-code-change pluggability for distributed infrastructure (Redis, RabbitMQ, Kafka, Prometheus).
-
-```
-                      +----------------------------------+
-                      |         EventBus System          |
-                      | (Sync/Async, Priority, Tracing)  |
-                      +----------------+-----------------+
-                                       |
-                                       v
- +----------------------+    +-------------------+    +----------------------+
- | QueueManager System  |    | MonitoringContext |    | MonitoringState      |
- | (Memory/Priority)    |===>| (Flow Pipeline)   |<===| Machine (Transitions)|
- +----------------------+    +-------------------+    +----------------------+
-                                       |
-                                       v
- +----------------------+    +-------------------+    +----------------------+
- | DI Container         |    | LifecycleManager  |    | MemoryMetrics        |
- | (Singleton/Transient)|    | (Hooks / Boot)    |    | (Counters / Gauges)  |
- +----------------------+    +-------------------+    +----------------------+
-```
-
-### 1. In-Process Domain Event Bus (`EventBus`)
-- Supports listener priorities, async/sync handlers, and one-time listeners (`registerOnce`).
-- Enforces strict event envelope (`DomainEvent` DTO) containing `eventId`, `eventName`, `timestamp`, `correlationId`, `payload`, `metadata`, `source`, `version`.
-- Pluggability: Business code emits `eventBus.emit(...)`. Transitioning to Kafka or RabbitMQ requires changing only the underlying `EventBus` implementation.
-
-### 2. Queue System & Priority Queue (`QueueManager`)
-- Implements `QueueInterface` with `MemoryQueue` (FIFO) and `PriorityQueue` (Max-Priority Heap).
-- Priority Levels: `FLASH_SALE` (100), `HIGH` (80), `COUPON` (60), `BANK_OFFER` (50), `NORMAL` (40), `LOW` (10).
-- Automatic duplicate prevention by tracking active item IDs (`productId` or `correlationId`).
-- Pluggability: Transitioning to Redis/BullMQ requires substituting `QueueInterface` in `QueueManager`.
-
-### 3. Monitoring State Machine (`MonitoringStateMachine`)
-State Transitions Matrix:
-- `IDLE` $\rightarrow$ `QUEUED`, `RUNNING`, `DISABLED`
-- `QUEUED` $\rightarrow$ `RUNNING`, `CANCELLED`
-- `RUNNING` $\rightarrow$ `WAITING`, `COMPLETED`, `FAILED`, `RETRYING`, `CANCELLED`
-- `WAITING` $\rightarrow$ `RUNNING`, `FAILED`, `CANCELLED`
-- `RETRYING` $\rightarrow$ `QUEUED`, `RUNNING`, `FAILED`, `CANCELLED`
-- `COMPLETED` $\rightarrow$ `IDLE`, `QUEUED`
-- `FAILED` $\rightarrow$ `IDLE`, `QUEUED`, `RETRYING`
-- `DISABLED` / `CANCELLED` $\rightarrow$ `IDLE`
-
-### 4. Dependency Injection Container (`Container`)
-- Lightweight in-process DI container supporting `registerSingleton()`, `registerTransient()`, `resolve()`, and `clear()`.
-
-### 5. Lifecycle & Metrics (`LifecycleManager` & `MemoryMetrics`)
-- `LifecycleManager`: Controls boot order and graceful process termination (`SIGINT`/`SIGTERM`).
-- `MemoryMetrics`: Tracks counter metrics (`eventsEmitted`, `failedEvents`, `processedEvents`, `retries`), gauges (`queueSize`), and latency histograms (`executionDuration`).
-
----
-
-## Merchant Abstraction Layer Architecture
-
-To prevent e-commerce platform variance (Amazon vs. Flipkart vs. Myntra) from polluting the application core, all platform integrations pass through the **Merchant Abstraction Layer**.
-
-### 1. Adapter & DTO Flow
+The Monitoring Pipeline structures request execution into prioritized middleware chains and stage coordinators, enforcing policies, provider abstractions, feature flags, and plugin extensions.
 
 ```
-   Raw E-Commerce Platform Data
-  (Amazon, Flipkart, Myntra, etc.)
-               │
-               ▼
-     [ Merchant Adapter ] ───────► (Normalizes schema variance)
-               │
-               ▼
-        [ ProductDTO ]    ───────► (Uniform contract)
-               │
-               ▼
-  [ Core Application Engine ] ────► (Zero knowledge of platform specifics)
+                  [ MonitoringTask.Builder ]
+                              │
+                              ▼
+                   [ PipelineCoordinator ]
+                              │
+    ┌─────────────────────────┴─────────────────────────┐
+    ▼                                                   ▼
+[ Middleware Chain ]                            [ Execution Stages ]
+ (Validation, State,                             (Stage 1 -> Priority 100)
+  DuplicateCheck, Merchant,                       (Stage 2 -> Priority 80)
+  Priority, Policies, Logging)                    (Stage 3 -> Priority 50)
+    │                                                   │
+    └─────────────────────────┬─────────────────────────┘
+                              │ (Emits Pipeline & Stage Events)
+                              ▼
+                 [ MonitoringResult.Builder ]
 ```
 
----
-
-## Database Domain Architecture
-
-### Collection Relationships & Data Flow
-
-```
- Merchant ───────► Product ───────► PriceHistory (Time-series)
-    │                 │
-    │                 ├───────► PriceAlert (Duplicate post prevention)
-    │                 │
-    ├───────► Coupon  └───────► Deal ───────► TelegramPost
-    │                             │
-    └───────► ScrapeJob           └─────────► DealHistory (Historical record)
-```
+### 1. Key Architectural Patterns & ADRs
+- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)**: Prioritized stages with automatic failure rollback.
+- **[ADR-007: Provider Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-007-provider-pattern.md)**: System API isolation (`TimeProvider`, `IdProvider`, `RandomProvider`, `EnvironmentProvider`, `ConfigurationProvider`).
+- **[ADR-008: Feature Flags](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-008-feature-flags.md)**: Runtime feature toggling (`ENABLE_PLAYWRIGHT`, `ENABLE_TELEGRAM`, `ENABLE_REDIS`).
+- **[ADR-009: Plugin Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-009-plugin-architecture.md)**: Lifecycle-managed extensions (`PlaywrightPlugin`, `TelegramPlugin`, etc.).
+- **[ADR-010: Middleware Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-010-middleware-pipeline.md)**: Cross-cutting pipeline interceptors.
 
 ---
 
