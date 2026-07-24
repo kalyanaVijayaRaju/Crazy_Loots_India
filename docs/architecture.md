@@ -17,8 +17,8 @@
                                     | Scrapes HTML / APIs
                                     v
                        +-------------------------+
-                       |    Scraper Service      |
-                       |  (Playwright / Axios)   |
+                       | Playwright Browser Platform|
+                       |  (Browser/Context/Page) |
                        +------------+------------+
                                     | Raw Product Data
                                     v
@@ -68,6 +68,9 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Pipeline Layer ]        -> PipelineCoordinator, Middleware Chain, Policies, Task/Result Builders
          |
          v
+ [ Browser Platform ]      -> PlaywrightAdapter, BrowserPool, ContextPool, PagePool, DomService
+         |
+         v
  [ Core Engine Layer ]     -> In-process EventBus, QueueManager, StateMachine, Context, DI Container
          |
          v
@@ -85,38 +88,45 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 
 ---
 
-## Monitoring Orchestration Layer Architecture
+## Playwright Browser Infrastructure Architecture
 
-The Monitoring Orchestration Layer coordinates request execution, resolving merchant adapters via `MerchantDispatcher`, strategy execution via `ExecutorFactory`, pipeline stages, state machine transitions, retry policies, distributed trace contexts, health monitors, and system telemetry statistics.
+The Playwright Infrastructure isolates browser automation mechanics into dedicated resource pools and helper services, exposing access through `PlaywrightAdapter`.
 
 ```
-                      [ MonitoringEngine ]
-                               │
-                               ▼
-                   [ MonitoringCoordinator ]
-                               │
-    ┌──────────────────────────┼──────────────────────────┐
-    ▼                          ▼                          ▼
-[ MerchantDispatcher ]   [ ExecutorFactory ]    [ PipelineCoordinator ]
-(Resolves Merchant)     (Resolves Executor)     (Executes Middleware/Stages)
-    │                          │                          │
-    └──────────────────────────┼──────────────────────────┘
-                               │ (Lifecycle & EventBus Notifications)
-                               ▼
-                   [ MonitoringResult Builder ]
+                    [ BrowserManager ]
+                            │
+                            ▼
+                     [ BrowserPool ] (Reuses Browser Instances)
+                            │
+                            ▼
+                     [ ContextPool ] (Session & Cookie Isolation)
+                            │
+                            ▼
+                      [ PagePool ] (Tab & Resource Allocation)
+                            │
+      ┌─────────────────────┼─────────────────────┐
+      ▼                     ▼                     ▼
+[ NavigationService ]  [ DomService ]   [ ScreenshotService ]
 ```
 
 ### Key Architectural Patterns & ADRs
-- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)**: Prioritized stages with automatic failure rollback.
-- **[ADR-007: Provider Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-007-provider-pattern.md)**: System API isolation (`TimeProvider`, `IdProvider`, `RandomProvider`, `EnvironmentProvider`, `ConfigurationProvider`).
-- **[ADR-008: Feature Flags](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-008-feature-flags.md)**: Runtime feature toggling (`ENABLE_PLAYWRIGHT`, `ENABLE_TELEGRAM`, `ENABLE_REDIS`).
-- **[ADR-009: Plugin Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-009-plugin-architecture.md)**: Lifecycle-managed extensions (`PlaywrightPlugin`, `TelegramPlugin`, etc.).
+- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)**: Prioritized stages with failure rollback.
+- **[ADR-007: Provider Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-007-provider-pattern.md)**: System API isolation.
+- **[ADR-008: Feature Flags](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-008-feature-flags.md)**: Runtime feature toggling.
+- **[ADR-009: Plugin Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-009-plugin-architecture.md)**: Lifecycle-managed extensions.
 - **[ADR-010: Middleware Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-010-middleware-pipeline.md)**: Cross-cutting pipeline interceptors.
-- **[ADR-011: Monitoring Orchestrator](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-011-monitoring-orchestrator.md)**: Orchestrator facade coordinating subsystem execution.
-- **[ADR-012: Executor Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-012-executor-abstraction.md)**: Pluggable scraping engine strategies (`StaticExecutor`, `PlaywrightExecutor`, `ApiExecutor`, `SeleniumExecutor`).
-- **[ADR-013: Scheduler Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-013-scheduler-abstraction.md)**: In-memory task scheduler interface (`MemoryScheduler`).
-- **[ADR-014: Unified Health Monitoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-014-health-monitoring.md)**: Aggregated component health checking (`HealthMonitor`).
-- **[ADR-015: Statistics & Tracing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-015-statistics-and-tracing.md)**: Trace ID propagation (`TraceContext`) and telemetry metrics (`StatisticsService`).
+- **[ADR-011: Monitoring Orchestrator](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-011-monitoring-orchestrator.md)**: System coordinator facade.
+- **[ADR-012: Executor Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-012-executor-abstraction.md)**: Pluggable scraping engine strategies.
+- **[ADR-013: Scheduler Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-013-scheduler-abstraction.md)**: In-memory task scheduler.
+- **[ADR-014: Unified Health Monitoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-014-health-monitoring.md)**: Component health aggregator.
+- **[ADR-015: Statistics & Tracing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-015-statistics-and-tracing.md)**: Distributed tracing and metrics.
+- **[ADR-016: Browser Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-016-browser-pool.md)**: Reusable browser instance pool.
+- **[ADR-017: Context Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-017-context-pool.md)**: Isolated browser context pool.
+- **[ADR-018: Page Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-018-page-pool.md)**: Reusable Playwright page pool.
+- **[ADR-019: Browser Crash Recovery](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-019-browser-recovery.md)**: Automated process recovery.
+- **[ADR-020: Playwright Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-020-playwright-abstraction.md)**: Adapter isolation for Playwright APIs.
+- **[ADR-021: Browser Metrics](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-021-browser-metrics.md)**: Resource & navigation telemetry.
+- **[ADR-022: Browser Registry](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-022-browser-registry.md)**: Active resource registry.
 
 ---
 

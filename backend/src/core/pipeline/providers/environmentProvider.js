@@ -7,8 +7,12 @@ class EnvironmentProvider extends ProviderInterface {
   }
 
   get(key, defaultValue = undefined) {
-    if (env[key] !== undefined) {
-      return env[key];
+    try {
+      if (env[key] !== undefined) {
+        return env[key];
+      }
+    } catch (_err) {
+      // Key not declared in strict envalid schema
     }
     return process.env[key] !== undefined ? process.env[key] : defaultValue;
   }
