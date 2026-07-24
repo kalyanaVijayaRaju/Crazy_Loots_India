@@ -23,6 +23,12 @@
                                     | Raw Product Data
                                     v
                        +-------------------------+
+                       | Product Monitoring Engine|
+                       | (Comparison / Detection)|
+                       +------------+------------+
+                                    | Verified Changes
+                                    v
+                       +-------------------------+
                        |   Deal Detector Engine  |
                        | (Price Drop / Discount) |
                        +------------+------------+
@@ -50,8 +56,6 @@
 
 ## Layered Clean Architecture
 
-The project enforces Clean Architecture principles with a strict unidirectional flow of dependencies:
-
 ```
  HTTP Request / Cron Trigger
          |
@@ -59,28 +63,63 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Routes Layer ]          -> Defines API endpoints & maps middleware
          |
          v
- [ Controllers Layer ]     -> Request validation, response formatting, status codes (Thin layer)
+ [ Controllers Layer ]     -> Request validation, response formatting
          |
          v
- [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher, Executor Abstractions
+ [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher
          |
          v
- [ Pipeline Layer ]        -> PipelineCoordinator, Middleware Chain, Policies, Task/Result Builders
+ [ Monitoring Layer ]      -> ProductMonitoringService, PriceComparison, ChangeDetector
          |
          v
- [ Amazon Merchant ]       -> Normalizer, ASIN Extractor, DomExtractor, Parsers, Validator, Mapper
+ [ Pipeline Layer ]        -> PipelineCoordinator, Middleware Chain, Policies
          |
          v
- [ Browser Platform ]      -> PlaywrightAdapter, BrowserPool, ContextPool, PagePool, DomService
+ [ Amazon Merchant ]       -> Normalizer, ASIN Extractor, DomExtractor, Parsers, Mapper
          |
          v
- [ Core Engine Layer ]     -> In-process EventBus, QueueManager, StateMachine, Context, DI Container
+ [ Browser Platform ]      -> PlaywrightAdapter, BrowserPool, ContextPool, PagePool
          |
          v
- [ Repositories Layer ]    -> ProductRepository, PriceHistoryRepository (Mongoose abstraction)
+ [ Core Engine Layer ]     -> EventBus, QueueManager, StateMachine, DI Container
          |
          v
- [ Models / Storage Layer ] -> Database schema definition & persistence (MongoDB)
+ [ Repositories Layer ]    -> Product, PriceHistory, MonitoringConfig, MonitoringRun
+         |
+         v
+ [ Models / Storage Layer ] -> MongoDB via Mongoose
+```
+
+---
+
+## Product Monitoring & Price Tracking Architecture
+
+```
+ Monitored Product ──► [ MonitoringConfiguration ] ──► Enabled? Priority? Interval?
+                                     │
+                                     ▼
+                      [ MonitoringLockManager ]    ──► Acquire lock (1 task per product)
+                                     │
+                                     ▼
+                     [ Amazon Adapter / Extractor ] ──► Extract fresh ProductDTO
+                                     │
+                                     ▼
+                    [ PriceComparisonService ]      ──► UP / DOWN / UNCHANGED / NEW_LOW / NEW_HIGH
+                                     │
+                                     ▼
+                    [ ProductChangeDetector ]       ──► Detect 9 attribute changes
+                                     │
+                                     ▼
+                    [ ProductMonitoringService ]    ──► Persist Product & PriceHistory
+                                     │
+                                     ▼
+                    [ MonitoringHistoryService ]    ──► Record MonitoringRun
+                                     │
+                                     ▼
+                    [ MonitoringReportGenerator ]   ──► Generate structured report
+                                     │
+                                     ▼
+                    [ EventBus ]                    ──► Emit PriceChanged / LowestPriceReached
 ```
 
 ---
@@ -88,63 +127,39 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 ## Amazon India Merchant Architecture
 
 ```
- Amazon URL ──► [ AmazonUrlNormalizer ] ──► Canonical URL (https://www.amazon.in/dp/B08N5WRWNW)
+ Amazon URL ──► [ AmazonUrlNormalizer ] ──► Canonical URL
                        │
                        ▼
-             [ AmazonAsinExtractor ]    ──► ASIN: "B08N5WRWNW"
+             [ AmazonAsinExtractor ]    ──► ASIN
                        │
                        ▼
-             [ AmazonDomExtractor ]     ──► RawAmazonProduct (Raw DOM values)
+             [ AmazonDomExtractor ]     ──► RawAmazonProduct
                        │
                        ▼
-             [ AmazonParsers ]          ──► Price, Rating, Review, Availability Parsers
+             [ AmazonParsers ]          ──► Parsed values
                        │
                        ▼
-             [ AmazonProductMapper ]    ──► Standardized ProductDTO
+             [ AmazonProductMapper ]    ──► ProductDTO
                        │
                        ▼
-             [ AmazonPersistenceService ]─► Saves Product & PriceHistory via Repositories
+             [ AmazonPersistenceService ]─► MongoDB
 ```
 
+---
+
 ### Key Architectural Patterns & ADRs
-- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)**: Prioritized stages with failure rollback.
-- **[ADR-007: Provider Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-007-provider-pattern.md)**: System API isolation.
-- **[ADR-008: Feature Flags](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-008-feature-flags.md)**: Runtime feature toggling.
-- **[ADR-009: Plugin Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-009-plugin-architecture.md)**: Extension management.
-- **[ADR-010: Middleware Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-010-middleware-pipeline.md)**: Pipeline interceptors.
-- **[ADR-011: Monitoring Orchestrator](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-011-monitoring-orchestrator.md)**: System coordinator.
-- **[ADR-012: Executor Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-012-executor-abstraction.md)**: Execution strategies.
-- **[ADR-013: Scheduler Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-013-scheduler-abstraction.md)**: Task scheduling.
-- **[ADR-014: Unified Health Monitoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-014-health-monitoring.md)**: Component health aggregator.
-- **[ADR-015: Statistics & Tracing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-015-statistics-and-tracing.md)**: Distributed tracing and metrics.
-- **[ADR-016: Browser Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-016-browser-pool.md)**: Reusable browser instance pool.
-- **[ADR-017: Context Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-017-context-pool.md)**: Isolated browser context pool.
-- **[ADR-018: Page Pool](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-018-page-pool.md)**: Reusable Playwright page pool.
-- **[ADR-019: Browser Crash Recovery](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-019-browser-recovery.md)**: Automated process recovery.
-- **[ADR-020: Playwright Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-020-playwright-abstraction.md)**: Adapter isolation for Playwright APIs.
-- **[ADR-021: Browser Metrics](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-021-browser-metrics.md)**: Resource & navigation telemetry.
-- **[ADR-022: Browser Registry](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-022-browser-registry.md)**: Active resource registry.
-- **[ADR-023: Amazon Merchant Integration](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-023-amazon-merchant.md)**: Amazon India extraction pipeline.
-- **[ADR-024: Centralized Selector Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-024-selector-strategy.md)**: Fallback selector chains dictionary.
-- **[ADR-025: Decoupled DOM Extraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-025-extraction-pipeline.md)**: Separation of DOM traversal from parsing.
-- **[ADR-026: Modular Parser Layer](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-026-parsing-layer.md)**: Numeric string parsing.
-- **[ADR-027: HTML Snapshot Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-027-snapshot-strategy.md)**: Post-mortem failure debugging.
-- **[ADR-028: Extraction Retry Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-028-retry-strategy.md)**: Exponential backoff retry handler.
-- **[ADR-029: Product DTO Mapping](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-029-product-mapping.md)**: Raw data to ProductDTO conversion.
-- **[ADR-030: Golden Test Pages](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-030-golden-test-pages.md)**: HTML test fixture suite.
-- **[ADR-031: Mock Browser Testing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-031-mock-browser-testing.md)**: Zero-browser offline test adapter.
-- **[ADR-032: DOM Version Detection](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-032-dom-version-detection.md)**: Layout change detector.
+- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)** through **[ADR-032: DOM Version Detection](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-032-dom-version-detection.md)**: Previous phases.
+- **[ADR-033: Monitoring Configuration](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-033-monitoring-configuration.md)**: Per-product scheduling model.
+- **[ADR-034: Price Comparison](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-034-price-comparison.md)**: Trend classification service.
+- **[ADR-035: Monitoring History](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-035-monitoring-history.md)**: Execution audit trail.
+- **[ADR-036: Product Change Detection](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-036-product-change-detection.md)**: Multi-attribute change detector.
+- **[ADR-037: Monitoring Reports](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-037-monitoring-reports.md)**: Structured report generation.
+- **[ADR-038: Monitoring Locks](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-038-monitoring-locks.md)**: Execution concurrency lock.
 
 ---
 
 ## Future Scaling Strategy
 
-1. **Caching & Queueing**:
-   - Integration of **Redis** for distributed locking, price history caching, and request rate limiting.
-   - Substitution of `MemoryQueue` with **BullMQ** or Redis streams.
-
-2. **Scraper Resilience**:
-   - Rotation of user-agents, proxies, and headless browser sessions using Playwright pool controllers.
-
-3. **Deployment Topology**:
-   - AWS EC2 managed by PM2 cluster mode with Nginx reverse proxy, SSL termination, and cloud log collection.
+1. **Caching & Queueing**: Redis for distributed locking and BullMQ for job queues.
+2. **Scraper Resilience**: User-agent rotation, proxy pools, and headless session cycling.
+3. **Deployment**: AWS EC2 with PM2 cluster mode, Nginx reverse proxy, and SSL.

@@ -9,6 +9,8 @@ const telegramPostRepository = require('./telegramPost.repository');
 const priceAlertRepository = require('./priceAlert.repository');
 const dealHistoryRepository = require('./dealHistory.repository');
 const scrapeJobRepository = require('./scrapeJob.repository');
+const monitoringConfigurationRepository = require('./monitoringConfiguration.repository');
+const monitoringRunRepository = require('./monitoringRun.repository');
 
 module.exports = {
   BaseRepository,
@@ -22,4 +24,6 @@ module.exports = {
   priceAlertRepository,
   dealHistoryRepository,
   scrapeJobRepository,
+  monitoringConfigurationRepository,
+  monitoringRunRepository,
 };

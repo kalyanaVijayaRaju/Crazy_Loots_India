@@ -8,6 +8,8 @@ const TelegramPost = require('./telegramPost.model');
 const PriceAlert = require('./priceAlert.model');
 const DealHistory = require('./dealHistory.model');
 const ScrapeJob = require('./scrapeJob.model');
+const MonitoringConfiguration = require('./monitoringConfiguration.model');
+const MonitoringRun = require('./monitoringRun.model');
 
 module.exports = {
   Merchant,
@@ -20,4 +22,6 @@ module.exports = {
   PriceAlert,
   DealHistory,
   ScrapeJob,
+  MonitoringConfiguration,
+  MonitoringRun,
 };
