@@ -73,30 +73,44 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 
 ---
 
-## Backend Directory Layout
+## Database Domain Architecture
+
+### Collection Relationships & Data Flow
 
 ```
-backend/
-├── src/
-│   ├── config/          # Environment & Database configuration
-│   ├── controllers/     # API request handlers (thin controllers)
-│   ├── services/        # Business logic & domain processing
-│   ├── repositories/    # Database abstraction layer
-│   ├── models/          # Mongoose schemas & models
-│   ├── routes/          # Express route definitions
-│   ├── middleware/      # Authentication, error handling, validation middleware
-│   ├── telegram/        # Telegram Bot integration & message formatters
-│   ├── affiliate/       # Affiliate tag injection & link processing
-│   ├── scrapers/        # E-commerce platform scrapers (Playwright)
-│   ├── jobs/            # Scheduled background jobs (node-cron)
-│   ├── utils/           # Logger, ApiError, ApiResponse, helpers
-│   └── constants/       # Enums, site constants, status codes
-├── .env.example         # Environment template
-├── .eslintrc.json       # ESLint configuration
-├── .prettierrc          # Prettier code formatting config
-├── package.json         # Node.js dependencies and scripts
-└── server.js            # Main application entry point
+ Merchant ───────► Product ───────► PriceHistory (Time-series)
+    │                 │
+    │                 ├───────► PriceAlert (Duplicate post prevention)
+    │                 │
+    ├───────► Coupon  └───────► Deal ───────► TelegramPost
+    │                             │
+    └───────► ScrapeJob           └─────────► DealHistory (Historical record)
 ```
+
+---
+
+### Collection Purpose & Indexing Summary
+
+| Collection | Primary Purpose | Key Indexes | Scalability Strategy |
+| :--- | :--- | :--- | :--- |
+| **Merchant** | E-commerce platform registry | `slug` (unique), `status`, `priority` | Cached in memory for fast lookup |
+| **Category** | Product categorization & taxonomy | `slug` (unique), `{ parentCategory, status }` | Hierarchical indexing for subcategory queries |
+| **Product** | Master product catalog & current state | `{ merchant, productId }` (unique), `slug`, `trackingEnabled`, `{ status, discountPercentage }` | Compound index on discount & tracking status |
+| **PriceHistory** | Time-series price drop tracking | `{ product, recordedAt: -1 }` | Compound index optimized for millions of price entries |
+| **Deal** | Detected & published loot deals | `product`, `{ status, dealScore: -1 }`, `publishedAt` | Sorted compound index for high-score deal publishing |
+| **Coupon** | E-commerce promo & discount codes | `{ merchant, couponCode }`, `{ status, expiryDate }` | Compound index for merchant coupon lookups |
+| **TelegramPost** | Published Telegram message mapping | `{ telegramMessageId, channelId }` (unique), `deal` | Prevents duplicate channel posts |
+| **PriceAlert** | Prevents duplicate deal broadcasts | `product`, `{ status, targetPrice }` | Fast alert threshold evaluation |
+| **DealHistory** | Full audit log of all detected deals | `{ product, detectedAt: -1 }`, `{ merchant, published }` | Log retention & deal trend analytics |
+| **ScrapeJob** | Scraper execution performance log | `{ merchant, startedAt: -1 }`, `{ status, startedAt: -1 }` | Scraper diagnostics & uptime auditing |
+
+---
+
+## Repository Layer Architecture
+
+The persistence layer strictly adheres to the **Repository Pattern**:
+- **BaseRepository**: Provides generic MongoDB CRUD operations (`create`, `findById`, `findOne`, `findMany`, `update`, `delete`, `paginate`, `count`, `exists`).
+- **Domain Repositories**: Encapsulate Mongoose queries. Services never import or call Mongoose models directly.
 
 ---
 

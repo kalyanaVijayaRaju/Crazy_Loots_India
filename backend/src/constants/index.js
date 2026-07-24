@@ -1,6 +1,8 @@
 /**
- * Application Constants
+ * Application Constants & Enums
  */
+
+const enums = require('./enums');
 
 const HTTP_STATUS = Object.freeze({
   OK: 200,
@@ -26,4 +28,5 @@ const NODE_ENVIRONMENTS = Object.freeze({
 module.exports = {
   HTTP_STATUS,
   NODE_ENVIRONMENTS,
+  ...enums,
 };
