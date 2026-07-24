@@ -1,41 +1,17 @@
 # Dependencies
 node_modules/
-.pnpm-store/
+backend/node_modules/
 
-# Environment variables
+# Environment files
 .env
-.env.local
-.env.*.local
+backend/.env
+*.env
 
 # Logs
 logs/
+backend/logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Directory for instrumented code leveraged by Istanbul
-coverage/
-*.lcov
-
-# Output / Build
-dist/
-build/
-
-# IDE / Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-
-# OS generated files
-Thumbs.db
-ehthumbs.db
+# Data & Archives
+backend/data/archive/*
+!backend/data/archive/.gitkeep

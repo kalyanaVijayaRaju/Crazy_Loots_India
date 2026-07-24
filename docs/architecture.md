@@ -148,6 +148,40 @@
 - **[ADR-068: End-to-End Pipeline Execution](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-068-end-to-end-validation.md)**: Full E2E workflow runner.
 - **[ADR-069: System Readiness & Diagnostics](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-069-readiness-and-diagnostics.md)**: Readiness and diagnostic services.
 - **[ADR-070: DRY_RUN Validation Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-070-dry-run-validation-strategy.md)**: Broadcast safety validator.
+- **[ADR-071: Observability Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-071-observability.md)**: Tracing, metrics, profiling, and observability API.
+- **[ADR-072: Circuit Breaker Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-072-circuit-breakers.md)**: Dependency protection via circuit breakers.
+- **[ADR-073: Auto Recovery Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-073-auto-recovery.md)**: Self-healing recovery for critical subsystems.
+- **[ADR-074: Execution Replay](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-074-execution-replay.md)**: Snapshot-based execution replay and archival.
+- **[ADR-075: Alert Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-075-alert-engine.md)**: Threshold-based alerting with failure classification.
+- **[ADR-076: Performance Profiling](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-076-performance-profiling.md)**: Auto-profiling with bottleneck identification.
+- **[ADR-077: Chaos Testing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-077-chaos-testing.md)**: Controlled failure simulation framework.
+- **[ADR-078: Production Readiness](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-078-production-readiness.md)**: Scored production readiness checklist.
+
+---
+
+## Observability & Production Hardening
+
+```
+ [ Observability Layer ]
+          │
+          ├── TraceTimelineService      → Per-execution stage tracing with IDs
+          ├── ExecutionTimelineStore     → Canonical pipeline stage timelines
+          ├── PerformanceProfiler        → Auto-profiling with bottleneck detection
+          ├── MetricsAggregator          → Unified counters, gauges, histograms
+          ├── AlertEngine                → Threshold-based alert generation
+          ├── FailureClassifier          → 9-category error classification
+          ├── CircuitBreakerRegistry     → 6 protected dependencies (CLOSED/OPEN/HALF_OPEN)
+          ├── AutoRecoveryService        → Self-healing with bounded retries
+          ├── ExecutionReplayService     → Snapshot-based execution replay
+          ├── ExecutionArchiveService    → Disk-backed artifact archival
+          ├── HealthCheckService         → Liveness/Readiness/Startup/Shutdown probes
+          ├── ProductionReadinessChecker → 8-category scored checklist
+          ├── ChaosTestRunner            → 6 controlled failure scenarios
+          ├── SystemDiagnosticsService   → Config/Dependency/Health/Version/Performance reports
+          ├── LongRunValidationRunner    → 20+ product DRY_RUN validation
+          ├── ObservabilityApi           → Backend-only REST endpoints
+          └── RunbookGenerator           → Structured operational runbook
+```
 
 ---
 
