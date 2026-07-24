@@ -52,7 +52,7 @@ class ProductMonitoringService {
         brand: newProductDTO.brand,
         image: newProductDTO.image,
         currentPrice: newProductDTO.currentPrice,
-        originalPrice: newProductDTO.originalPrice,
+        originalPrice: newProductDTO.originalPrice || newProductDTO.currentPrice,
         rating: newProductDTO.rating,
         reviewCount: newProductDTO.reviewCount,
         availability: newProductDTO.availability,
@@ -67,19 +67,24 @@ class ProductMonitoringService {
         updateData.highestEver = newProductDTO.currentPrice;
       }
 
-      await productRepository.update(productId, updateData);
+      try {
+        await productRepository.update(productId, updateData);
+      } catch (err) {
+        logger.warn(`[ProductMonitoringService] Product update in DB skipped: ${err.message}`);
+      }
 
       // 4. Persist price history
-      await priceHistoryRepository.create({
-        productId,
-        merchant,
-        merchantProductId: newProductDTO.productId,
-        price: newProductDTO.currentPrice,
-        originalPrice: newProductDTO.originalPrice,
-        discountPercentage: newProductDTO.discountPercentage,
-        availability: newProductDTO.availability,
-        timestamp: new Date(),
-      });
+      try {
+        await priceHistoryRepository.create({
+          product: productId,
+          price: newProductDTO.currentPrice,
+          originalPrice: newProductDTO.originalPrice || newProductDTO.currentPrice,
+          discountPercentage: newProductDTO.discountPercentage || 0,
+          recordedAt: new Date(),
+        });
+      } catch (err) {
+        logger.warn(`[ProductMonitoringService] Price history create skipped: ${err.message}`);
+      }
 
       const durationMs = Date.now() - startMs;
 

@@ -66,6 +66,9 @@
  HTTP Request / Cron Trigger
          |
          v
+ [ System Orchestrator ]   -> StartupManager, Readiness, Diagnostics, EndToEndPipeline
+         |
+         v
  [ Routes Layer ]          -> Defines API endpoints & maps middleware
          |
          v
@@ -107,44 +110,44 @@
 
 ---
 
-## Telegram Publishing Engine Architecture
+## End-to-End Workflow Architecture
 
 ```
- PublishingPackage ──► [ DeliveryValidator ] ──► Validates approval & affiliate URL
-                             │
-                             ▼
-                    [ ChannelRouter ]        ──► Selects target Telegram channel
-                             │
-                             ▼
-                    [ PublishingQueue ]      ──► Priority task queueing
-                             │
-                             ▼
-                [ PublishingStateMachine ]   ──► CREATED → VALIDATED → APPROVED → QUEUED → PUBLISHING → PUBLISHED
-                             │
-                             ▼
-               [ ImmediatePublishingStrategy ] ──► Dispatches payload to client
-                             │
-                             ▼
-                 [ TelegramClientFactory ]   ──► DRY_RUN / SANDBOX (MockClient) vs LIVE (RealClient)
-                             │
-                             ▼
-                [ PublishingHistoryService ] ──► Persists record via TelegramPostRepository
+ Real Amazon Product URL
+          │
+          ▼
+ [ Merchant Adapter & Playwright ] ──► Extracts raw HTML & maps ProductDTO
+          │
+          ▼
+ [ Product Monitoring Engine ]    ──► Price comparison & change detection
+          │
+          ▼
+ [ Deal Intelligence Engine ]     ──► 30d/90d/180d Lows, Rule Evaluation & 0-100 Score
+          │
+          ▼
+ [ Approval Queue Service ]       ──► Enqueues deal with status APPROVED
+          │
+          ▼
+ [ Publishing Preparation Engine] ──► Affiliate Link, Short URL, Images, Template Rendering
+          │
+          ▼
+ [ Telegram Publishing Engine ]   ──► Executes task safely in DRY_RUN mode
+          │
+          ▼
+ [ Publishing History ]           ──► Persists record via TelegramPostRepository
 ```
 
 ---
 
 ### Key Architectural Patterns & ADRs
-- **[ADR-006] to [ADR-053]**: Previous phases.
-- **[ADR-054: Telegram Publishing Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-054-telegram-publishing-engine.md)**: Main publisher engine.
-- **[ADR-055: Controlled Publishing Modes](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-055-publishing-modes.md)**: DRY_RUN, SANDBOX, LIVE modes.
-- **[ADR-056: Publishing State Machine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-056-publishing-state-machine.md)**: 10 discrete states.
-- **[ADR-057: Priority Publishing Queue](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-057-publishing-queue.md)**: Priority task queue.
-- **[ADR-058: Exponential Backoff & DLQ](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-058-retry-strategy.md)**: Retry engine with backoff & DLQ.
-- **[ADR-059: Channel Registry & Routing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-059-telegram-channel-registry.md)**: Channel registry and routing.
-- **[ADR-060: Pre-Dispatch Delivery Validation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-060-delivery-validation.md)**: Delivery validator.
-- **[ADR-061: Publishing History Persistence](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-061-publishing-history.md)**: TelegramPost history logger.
-- **[ADR-062: Message Rollback Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-062-rollback-strategy.md)**: Deletion & edit rollback service.
-- **[ADR-063: Telegram Client Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-063-telegram-client-abstraction.md)**: Decoupled client factory.
+- **[ADR-006] to [ADR-063]**: Previous phases.
+- **[ADR-064: System Orchestration Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-064-system-orchestration.md)**: Main orchestrator architecture.
+- **[ADR-065: Subsystem Startup Lifecycle](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-065-startup-lifecycle.md)**: Idempotent startup manager.
+- **[ADR-066: Background Monitoring Worker](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-066-background-worker.md)**: Task worker with lock protection.
+- **[ADR-067: Environment Profile Management](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-067-environment-profiles.md)**: Profile definitions for dev/staging/prod.
+- **[ADR-068: End-to-End Pipeline Execution](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-068-end-to-end-validation.md)**: Full E2E workflow runner.
+- **[ADR-069: System Readiness & Diagnostics](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-069-readiness-and-diagnostics.md)**: Readiness and diagnostic services.
+- **[ADR-070: DRY_RUN Validation Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-070-dry-run-validation-strategy.md)**: Broadcast safety validator.
 
 ---
 
