@@ -1,7 +1,7 @@
 const env = require('./config/environment');
 const logger = require('./utils/logger');
 const { connectDB, disconnectDB } = require('./config/database');
-const { initTelegramBot } = require('./telegram');
+const { telegramService } = require('./telegram');
 const app = require('./app');
 
 let server;
@@ -16,15 +16,17 @@ const startServer = async () => {
   // Connect to Database
   await connectDB();
 
-  // Initialize Telegram Bot Module (Phase 2 stub)
-  initTelegramBot();
-
   // Start HTTP Server
   server = app.listen(env.PORT, () => {
     logger.info(
       `🚀 ${env.APP_NAME} Backend running on port ${env.PORT} in [${env.NODE_ENV}] mode`
     );
     logger.info(`Health check available at: http://localhost:${env.PORT}${env.API_PREFIX}/health`);
+
+    // Send Telegram startup notification asynchronously (non-blocking)
+    telegramService.sendStartupMessage().catch((err) => {
+      logger.warn(`Startup Telegram notification error: ${err.message}`);
+    });
   });
 
   // Handle unhandled promise rejections
