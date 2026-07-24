@@ -62,6 +62,9 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Controllers Layer ]     -> Request validation, response formatting, status codes (Thin layer)
          |
          v
+ [ Core Engine Layer ]     -> In-process EventBus, QueueManager, StateMachine, Context, DI Container
+         |
+         v
  [ Services Layer ]        -> Core business logic, orchestration, validation rules
          |
          v
@@ -73,6 +76,60 @@ The project enforces Clean Architecture principles with a strict unidirectional 
          v
  [ Models / Storage Layer ] -> Database schema definition & persistence (MongoDB)
 ```
+
+---
+
+## Core Engine Foundation Architecture
+
+The Core Engine provides reusable internal infrastructure designed for zero-dependency local execution while enabling zero-code-change pluggability for distributed infrastructure (Redis, RabbitMQ, Kafka, Prometheus).
+
+```
+                      +----------------------------------+
+                      |         EventBus System          |
+                      | (Sync/Async, Priority, Tracing)  |
+                      +----------------+-----------------+
+                                       |
+                                       v
+ +----------------------+    +-------------------+    +----------------------+
+ | QueueManager System  |    | MonitoringContext |    | MonitoringState      |
+ | (Memory/Priority)    |===>| (Flow Pipeline)   |<===| Machine (Transitions)|
+ +----------------------+    +-------------------+    +----------------------+
+                                       |
+                                       v
+ +----------------------+    +-------------------+    +----------------------+
+ | DI Container         |    | LifecycleManager  |    | MemoryMetrics        |
+ | (Singleton/Transient)|    | (Hooks / Boot)    |    | (Counters / Gauges)  |
+ +----------------------+    +-------------------+    +----------------------+
+```
+
+### 1. In-Process Domain Event Bus (`EventBus`)
+- Supports listener priorities, async/sync handlers, and one-time listeners (`registerOnce`).
+- Enforces strict event envelope (`DomainEvent` DTO) containing `eventId`, `eventName`, `timestamp`, `correlationId`, `payload`, `metadata`, `source`, `version`.
+- Pluggability: Business code emits `eventBus.emit(...)`. Transitioning to Kafka or RabbitMQ requires changing only the underlying `EventBus` implementation.
+
+### 2. Queue System & Priority Queue (`QueueManager`)
+- Implements `QueueInterface` with `MemoryQueue` (FIFO) and `PriorityQueue` (Max-Priority Heap).
+- Priority Levels: `FLASH_SALE` (100), `HIGH` (80), `COUPON` (60), `BANK_OFFER` (50), `NORMAL` (40), `LOW` (10).
+- Automatic duplicate prevention by tracking active item IDs (`productId` or `correlationId`).
+- Pluggability: Transitioning to Redis/BullMQ requires substituting `QueueInterface` in `QueueManager`.
+
+### 3. Monitoring State Machine (`MonitoringStateMachine`)
+State Transitions Matrix:
+- `IDLE` $\rightarrow$ `QUEUED`, `RUNNING`, `DISABLED`
+- `QUEUED` $\rightarrow$ `RUNNING`, `CANCELLED`
+- `RUNNING` $\rightarrow$ `WAITING`, `COMPLETED`, `FAILED`, `RETRYING`, `CANCELLED`
+- `WAITING` $\rightarrow$ `RUNNING`, `FAILED`, `CANCELLED`
+- `RETRYING` $\rightarrow$ `QUEUED`, `RUNNING`, `FAILED`, `CANCELLED`
+- `COMPLETED` $\rightarrow$ `IDLE`, `QUEUED`
+- `FAILED` $\rightarrow$ `IDLE`, `QUEUED`, `RETRYING`
+- `DISABLED` / `CANCELLED` $\rightarrow$ `IDLE`
+
+### 4. Dependency Injection Container (`Container`)
+- Lightweight in-process DI container supporting `registerSingleton()`, `registerTransient()`, `resolve()`, and `clear()`.
+
+### 5. Lifecycle & Metrics (`LifecycleManager` & `MemoryMetrics`)
+- `LifecycleManager`: Controls boot order and graceful process termination (`SIGINT`/`SIGTERM`).
+- `MemoryMetrics`: Tracks counter metrics (`eventsEmitted`, `failedEvents`, `processedEvents`, `retries`), gauges (`queueSize`), and latency histograms (`executionDuration`).
 
 ---
 
@@ -96,20 +153,6 @@ To prevent e-commerce platform variance (Amazon vs. Flipkart vs. Myntra) from po
   [ Core Application Engine ] ────► (Zero knowledge of platform specifics)
 ```
 
-### 2. Why Every Merchant Returns `ProductDTO`
-
-1. **Decoupling Business Logic**: The deal discovery engine, price tracking algorithm, and Telegram publisher require a single, predictable interface (`title`, `currentPrice`, `originalPrice`, `discountPercentage`, `productUrl`).
-2. **Zero Code Churn on Adding Merchants**: Integrating a 10th merchant (e.g. Nykaa or Croma) requires writing only the platform adapter. No business service or repository requires modification.
-3. **Strict Validation & Type Safety**: `ProductDTO` validates numerical bounds, auto-computes discount percentages, and normalizes merchant names at the boundary layer.
-
----
-
-### 3. Design Patterns Applied
-
-- **Adapter Pattern**: `MerchantAdapter` defines the common interface contract. Each e-commerce store (`AmazonAdapter`, `FlipkartAdapter`, `MyntraAdapter`) implements platform-specific URL regex, affiliate tags, and scraping normalization.
-- **Factory Pattern**: `MerchantFactory` resolves the appropriate adapter instance either by merchant slug (`'amazon'`) or by auto-matching raw product web links (`getAdapterByUrl(url)`).
-- **Registry Pattern**: `MerchantRegistry` dynamically registers and manages supported merchant adapters.
-
 ---
 
 ## Database Domain Architecture
@@ -128,28 +171,11 @@ To prevent e-commerce platform variance (Amazon vs. Flipkart vs. Myntra) from po
 
 ---
 
-### Collection Purpose & Indexing Summary
-
-| Collection | Primary Purpose | Key Indexes | Scalability Strategy |
-| :--- | :--- | :--- | :--- |
-| **Merchant** | E-commerce platform registry | `slug` (unique), `status`, `priority` | Cached in memory for fast lookup |
-| **Category** | Product categorization & taxonomy | `slug` (unique), `{ parentCategory, status }` | Hierarchical indexing for subcategory queries |
-| **Product** | Master product catalog & current state | `{ merchant, productId }` (unique), `slug`, `trackingEnabled`, `{ status, discountPercentage }` | Compound index on discount & tracking status |
-| **PriceHistory** | Time-series price drop tracking | `{ product, recordedAt: -1 }` | Compound index optimized for millions of price entries |
-| **Deal** | Detected & published loot deals | `product`, `{ status, dealScore: -1 }`, `publishedAt` | Sorted compound index for high-score deal publishing |
-| **Coupon** | E-commerce promo & discount codes | `{ merchant, couponCode }`, `{ status, expiryDate }` | Compound index for merchant coupon lookups |
-| **TelegramPost** | Published Telegram message mapping | `{ telegramMessageId, channelId }` (unique), `deal` | Prevents duplicate channel posts |
-| **PriceAlert** | Prevents duplicate deal broadcasts | `product`, `{ status, targetPrice }` | Fast alert threshold evaluation |
-| **DealHistory** | Full audit log of all detected deals | `{ product, detectedAt: -1 }`, `{ merchant, published }` | Log retention & deal trend analytics |
-| **ScrapeJob** | Scraper execution performance log | `{ merchant, startedAt: -1 }`, `{ status, startedAt: -1 }` | Scraper diagnostics & uptime auditing |
-
----
-
 ## Future Scaling Strategy
 
 1. **Caching & Queueing**:
    - Integration of **Redis** for distributed locking, price history caching, and request rate limiting.
-   - Integration of **BullMQ** or Redis streams for decoupled asynchronous scraping & Telegram posting queues.
+   - Substitution of `MemoryQueue` with **BullMQ** or Redis streams.
 
 2. **Scraper Resilience**:
    - Rotation of user-agents, proxies, and headless browser sessions using Playwright pool controllers.
