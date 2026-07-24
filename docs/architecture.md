@@ -62,7 +62,10 @@ The project enforces Clean Architecture principles with a strict unidirectional 
  [ Controllers Layer ]     -> Request validation, response formatting, status codes (Thin layer)
          |
          v
- [ Pipeline Layer ]        -> Coordinator, Middleware Chain, Policies, Task/Result Builders
+ [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher, Executor Abstractions
+         |
+         v
+ [ Pipeline Layer ]        -> PipelineCoordinator, Middleware Chain, Policies, Task/Result Builders
          |
          v
  [ Core Engine Layer ]     -> In-process EventBus, QueueManager, StateMachine, Context, DI Container
@@ -82,35 +85,38 @@ The project enforces Clean Architecture principles with a strict unidirectional 
 
 ---
 
-## Monitoring Pipeline Architecture
+## Monitoring Orchestration Layer Architecture
 
-The Monitoring Pipeline structures request execution into prioritized middleware chains and stage coordinators, enforcing policies, provider abstractions, feature flags, and plugin extensions.
+The Monitoring Orchestration Layer coordinates request execution, resolving merchant adapters via `MerchantDispatcher`, strategy execution via `ExecutorFactory`, pipeline stages, state machine transitions, retry policies, distributed trace contexts, health monitors, and system telemetry statistics.
 
 ```
-                  [ MonitoringTask.Builder ]
-                              │
-                              ▼
-                   [ PipelineCoordinator ]
-                              │
-    ┌─────────────────────────┴─────────────────────────┐
-    ▼                                                   ▼
-[ Middleware Chain ]                            [ Execution Stages ]
- (Validation, State,                             (Stage 1 -> Priority 100)
-  DuplicateCheck, Merchant,                       (Stage 2 -> Priority 80)
-  Priority, Policies, Logging)                    (Stage 3 -> Priority 50)
-    │                                                   │
-    └─────────────────────────┬─────────────────────────┘
-                              │ (Emits Pipeline & Stage Events)
-                              ▼
-                 [ MonitoringResult.Builder ]
+                      [ MonitoringEngine ]
+                               │
+                               ▼
+                   [ MonitoringCoordinator ]
+                               │
+    ┌──────────────────────────┼──────────────────────────┐
+    ▼                          ▼                          ▼
+[ MerchantDispatcher ]   [ ExecutorFactory ]    [ PipelineCoordinator ]
+(Resolves Merchant)     (Resolves Executor)     (Executes Middleware/Stages)
+    │                          │                          │
+    └──────────────────────────┼──────────────────────────┘
+                               │ (Lifecycle & EventBus Notifications)
+                               ▼
+                   [ MonitoringResult Builder ]
 ```
 
-### 1. Key Architectural Patterns & ADRs
+### Key Architectural Patterns & ADRs
 - **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)**: Prioritized stages with automatic failure rollback.
 - **[ADR-007: Provider Pattern](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-007-provider-pattern.md)**: System API isolation (`TimeProvider`, `IdProvider`, `RandomProvider`, `EnvironmentProvider`, `ConfigurationProvider`).
 - **[ADR-008: Feature Flags](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-008-feature-flags.md)**: Runtime feature toggling (`ENABLE_PLAYWRIGHT`, `ENABLE_TELEGRAM`, `ENABLE_REDIS`).
 - **[ADR-009: Plugin Architecture](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-009-plugin-architecture.md)**: Lifecycle-managed extensions (`PlaywrightPlugin`, `TelegramPlugin`, etc.).
 - **[ADR-010: Middleware Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-010-middleware-pipeline.md)**: Cross-cutting pipeline interceptors.
+- **[ADR-011: Monitoring Orchestrator](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-011-monitoring-orchestrator.md)**: Orchestrator facade coordinating subsystem execution.
+- **[ADR-012: Executor Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-012-executor-abstraction.md)**: Pluggable scraping engine strategies (`StaticExecutor`, `PlaywrightExecutor`, `ApiExecutor`, `SeleniumExecutor`).
+- **[ADR-013: Scheduler Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-013-scheduler-abstraction.md)**: In-memory task scheduler interface (`MemoryScheduler`).
+- **[ADR-014: Unified Health Monitoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-014-health-monitoring.md)**: Aggregated component health checking (`HealthMonitor`).
+- **[ADR-015: Statistics & Tracing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-015-statistics-and-tracing.md)**: Trace ID propagation (`TraceContext`) and telemetry metrics (`StatisticsService`).
 
 ---
 
