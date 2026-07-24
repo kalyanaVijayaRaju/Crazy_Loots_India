@@ -48,7 +48,7 @@
                                     v
                        +-------------------------+
                        | Telegram Publisher Bot  |
-                       |   (Bot API Service)     |
+                       | (Mode / Queue / Strategy)|
                        +------------+------------+
                                     | Broadcasts Message
                                     v
@@ -75,7 +75,10 @@
  [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher
          |
          v
- [ Publishing Engine ]     -> PublishingPreparationService, AffiliateManager, MessageRenderer
+ [ Telegram Publishing ]   -> TelegramPublisher, PublishingQueue, ClientFactory
+         |
+         v
+ [ Publishing Preparation] -> PublishingPreparationService, AffiliateManager, MessageRenderer
          |
          v
  [ Deal Intelligence ]     -> DealDetectionEngine, RuleEngine, ScoreEngine, ApprovalQueue
@@ -96,7 +99,7 @@
  [ Core Engine Layer ]     -> EventBus, QueueManager, StateMachine, DI Container
          |
          v
- [ Repositories Layer ]    -> Product, PriceHistory, Deal, DealHistory, MonitoringRun
+ [ Repositories Layer ]    -> Product, PriceHistory, Deal, DealHistory, TelegramPost
          |
          v
  [ Models / Storage Layer ] -> MongoDB via Mongoose
@@ -104,38 +107,44 @@
 
 ---
 
-## Publishing Preparation Architecture
+## Telegram Publishing Engine Architecture
 
 ```
- Approved Deal ──► [ AffiliateManager ]    ──► AmazonAssociates / Cuelinks / Admitad
-                         │
-                         ▼
-                [ ShortUrlManager ]     ──► Branded Short URL (https://loots.in/...)
-                         │
-                         ▼
-                [ ImagePipeline ]       ──► Thumbnail, Banner, Social Preview assets
-                         │
-                         ▼
-                [ MessageRenderer ]     ──► Telegram, Website, WhatsApp, Push, Email
-                         │
-                         ▼
-                [ ContentValidator ]    ──► Validate approval, bounds & links
-                         │
-                         ▼
-              [ PublishingPackage ]     ──► Immutable Publishing Payload + Previews
+ PublishingPackage ──► [ DeliveryValidator ] ──► Validates approval & affiliate URL
+                             │
+                             ▼
+                    [ ChannelRouter ]        ──► Selects target Telegram channel
+                             │
+                             ▼
+                    [ PublishingQueue ]      ──► Priority task queueing
+                             │
+                             ▼
+                [ PublishingStateMachine ]   ──► CREATED → VALIDATED → APPROVED → QUEUED → PUBLISHING → PUBLISHED
+                             │
+                             ▼
+               [ ImmediatePublishingStrategy ] ──► Dispatches payload to client
+                             │
+                             ▼
+                 [ TelegramClientFactory ]   ──► DRY_RUN / SANDBOX (MockClient) vs LIVE (RealClient)
+                             │
+                             ▼
+                [ PublishingHistoryService ] ──► Persists record via TelegramPostRepository
 ```
 
 ---
 
 ### Key Architectural Patterns & ADRs
-- **[ADR-006] to [ADR-046]**: Previous phases.
-- **[ADR-047: Immutable Publishing Package](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-047-publishing-package.md)**: Immutable DTO payload.
-- **[ADR-048: Affiliate Provider Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-048-affiliate-provider-abstraction.md)**: Network-agnostic monetization interface.
-- **[ADR-049: Multi-Channel Template Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-049-template-engine.md)**: Data-driven template renderer.
-- **[ADR-050: Multi-Format Image Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-050-image-pipeline.md)**: Thumbnail, banner & social image pipeline.
-- **[ADR-051: Publishing Content Validation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-051-publishing-validation.md)**: Pre-broadcast validator.
-- **[ADR-052: Multi-Channel Preview Generation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-052-preview-generation.md)**: Channel UI preview generator.
-- **[ADR-053: Publishing Package Audit Trail](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-053-audit-trail.md)**: Audit log tracker.
+- **[ADR-006] to [ADR-053]**: Previous phases.
+- **[ADR-054: Telegram Publishing Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-054-telegram-publishing-engine.md)**: Main publisher engine.
+- **[ADR-055: Controlled Publishing Modes](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-055-publishing-modes.md)**: DRY_RUN, SANDBOX, LIVE modes.
+- **[ADR-056: Publishing State Machine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-056-publishing-state-machine.md)**: 10 discrete states.
+- **[ADR-057: Priority Publishing Queue](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-057-publishing-queue.md)**: Priority task queue.
+- **[ADR-058: Exponential Backoff & DLQ](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-058-retry-strategy.md)**: Retry engine with backoff & DLQ.
+- **[ADR-059: Channel Registry & Routing](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-059-telegram-channel-registry.md)**: Channel registry and routing.
+- **[ADR-060: Pre-Dispatch Delivery Validation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-060-delivery-validation.md)**: Delivery validator.
+- **[ADR-061: Publishing History Persistence](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-061-publishing-history.md)**: TelegramPost history logger.
+- **[ADR-062: Message Rollback Strategy](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-062-rollback-strategy.md)**: Deletion & edit rollback service.
+- **[ADR-063: Telegram Client Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-063-telegram-client-abstraction.md)**: Decoupled client factory.
 
 ---
 
