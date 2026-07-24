@@ -41,10 +41,10 @@
                                     | Approved Deal
                                     v
                        +-------------------------+
-                       |    Affiliate Service    |
-                       |  (Tagging / Shortener)  |
+                       | Publishing Preparation  |
+                       | (Affiliate / Templates) |
                        +------------+------------+
-                                    | Monetized Deal
+                                    | PublishingPackage
                                     v
                        +-------------------------+
                        | Telegram Publisher Bot  |
@@ -75,6 +75,9 @@
  [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher
          |
          v
+ [ Publishing Engine ]     -> PublishingPreparationService, AffiliateManager, MessageRenderer
+         |
+         v
  [ Deal Intelligence ]     -> DealDetectionEngine, RuleEngine, ScoreEngine, ApprovalQueue
          |
          v
@@ -101,42 +104,38 @@
 
 ---
 
-## Deal Detection & Intelligence Engine Architecture
+## Publishing Preparation Architecture
 
 ```
- Monitored Product ──► [ HistoricalPriceAnalyzer ] ──► Compute 30d/90d/180d & All-Time Lows
-                                     │
-                                     ▼
-                          [ TrendAnalyzer ]        ──► RISING / FALLING / STABLE / NEW_LOW
-                                     │
-                                     ▼
-                          [ RuleEngine ]           ──► Data-driven rule evaluation (min discount, stock)
-                                     │
-                                     ▼
-                          [ DealScoreEngine ]      ──► 0–100 Weighted Score calculation
-                                     │
-                                     ▼
-                       [ DealConfidenceEngine ]    ──► Confidence percentage & reasoning
-                                     │
-                                     ▼
-                      [ DealExplainabilityEngine ] ──► Human-readable bulleted points ("✓ Lowest in 180d")
-                                     │
-                                     ▼
-                    [ DealApprovalQueueService ]   ──► Enqueue into DealRepository (PENDING status)
+ Approved Deal ──► [ AffiliateManager ]    ──► AmazonAssociates / Cuelinks / Admitad
+                         │
+                         ▼
+                [ ShortUrlManager ]     ──► Branded Short URL (https://loots.in/...)
+                         │
+                         ▼
+                [ ImagePipeline ]       ──► Thumbnail, Banner, Social Preview assets
+                         │
+                         ▼
+                [ MessageRenderer ]     ──► Telegram, Website, WhatsApp, Push, Email
+                         │
+                         ▼
+                [ ContentValidator ]    ──► Validate approval, bounds & links
+                         │
+                         ▼
+              [ PublishingPackage ]     ──► Immutable Publishing Payload + Previews
 ```
 
 ---
 
 ### Key Architectural Patterns & ADRs
-- **[ADR-006] to [ADR-038]**: Previous phases.
-- **[ADR-039: Historical Price Analysis](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-039-historical-price-analysis.md)**: 30/90/180-day & all-time low calculation.
-- **[ADR-040: Data-Driven Rule Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-040-rule-engine.md)**: Configurable rules with versioning & simulator.
-- **[ADR-041: Weighted Deal Scoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-041-deal-scoring.md)**: 0–100 weighted quality score.
-- **[ADR-042: Deal Confidence Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-042-confidence-engine.md)**: Confidence percentage calculation.
-- **[ADR-043: Manual Approval Queue](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-043-approval-queue.md)**: Human verification workflow.
-- **[ADR-044: Deal Explainability](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-044-explainability.md)**: Transparent qualification bullet points.
-- **[ADR-045: Duplicate Prevention](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-045-duplicate-prevention.md)**: Duplicate window detection.
-- **[ADR-046: Product Deal Cooldown](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-046-cooldown-strategy.md)**: Dampening minor price fluctuations.
+- **[ADR-006] to [ADR-046]**: Previous phases.
+- **[ADR-047: Immutable Publishing Package](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-047-publishing-package.md)**: Immutable DTO payload.
+- **[ADR-048: Affiliate Provider Abstraction](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-048-affiliate-provider-abstraction.md)**: Network-agnostic monetization interface.
+- **[ADR-049: Multi-Channel Template Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-049-template-engine.md)**: Data-driven template renderer.
+- **[ADR-050: Multi-Format Image Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-050-image-pipeline.md)**: Thumbnail, banner & social image pipeline.
+- **[ADR-051: Publishing Content Validation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-051-publishing-validation.md)**: Pre-broadcast validator.
+- **[ADR-052: Multi-Channel Preview Generation](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-052-preview-generation.md)**: Channel UI preview generator.
+- **[ADR-053: Publishing Package Audit Trail](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-053-audit-trail.md)**: Audit log tracker.
 
 ---
 
