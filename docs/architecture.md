@@ -26,13 +26,19 @@
                        | Product Monitoring Engine|
                        | (Comparison / Detection)|
                        +------------+------------+
-                                    | Verified Changes
+                                    | Product & History Data
                                     v
                        +-------------------------+
-                       |   Deal Detector Engine  |
-                       | (Price Drop / Discount) |
+                       | Deal Intelligence Engine|
+                       | (Rules / Scoring / Queue)|
                        +------------+------------+
-                                    | Verified Loot Deal
+                                    | Verified PENDING Deal
+                                    v
+                       +-------------------------+
+                       |   Manual Approval Queue |
+                       | (PENDING → APPROVED)    |
+                       +------------+------------+
+                                    | Approved Deal
                                     v
                        +-------------------------+
                        |    Affiliate Service    |
@@ -69,6 +75,9 @@
  [ Orchestration Layer ]   -> MonitoringEngine, MonitoringCoordinator, Dispatcher
          |
          v
+ [ Deal Intelligence ]     -> DealDetectionEngine, RuleEngine, ScoreEngine, ApprovalQueue
+         |
+         v
  [ Monitoring Layer ]      -> ProductMonitoringService, PriceComparison, ChangeDetector
          |
          v
@@ -84,7 +93,7 @@
  [ Core Engine Layer ]     -> EventBus, QueueManager, StateMachine, DI Container
          |
          v
- [ Repositories Layer ]    -> Product, PriceHistory, MonitoringConfig, MonitoringRun
+ [ Repositories Layer ]    -> Product, PriceHistory, Deal, DealHistory, MonitoringRun
          |
          v
  [ Models / Storage Layer ] -> MongoDB via Mongoose
@@ -92,69 +101,42 @@
 
 ---
 
-## Product Monitoring & Price Tracking Architecture
+## Deal Detection & Intelligence Engine Architecture
 
 ```
- Monitored Product ──► [ MonitoringConfiguration ] ──► Enabled? Priority? Interval?
+ Monitored Product ──► [ HistoricalPriceAnalyzer ] ──► Compute 30d/90d/180d & All-Time Lows
                                      │
                                      ▼
-                      [ MonitoringLockManager ]    ──► Acquire lock (1 task per product)
+                          [ TrendAnalyzer ]        ──► RISING / FALLING / STABLE / NEW_LOW
                                      │
                                      ▼
-                     [ Amazon Adapter / Extractor ] ──► Extract fresh ProductDTO
+                          [ RuleEngine ]           ──► Data-driven rule evaluation (min discount, stock)
                                      │
                                      ▼
-                    [ PriceComparisonService ]      ──► UP / DOWN / UNCHANGED / NEW_LOW / NEW_HIGH
+                          [ DealScoreEngine ]      ──► 0–100 Weighted Score calculation
                                      │
                                      ▼
-                    [ ProductChangeDetector ]       ──► Detect 9 attribute changes
+                       [ DealConfidenceEngine ]    ──► Confidence percentage & reasoning
                                      │
                                      ▼
-                    [ ProductMonitoringService ]    ──► Persist Product & PriceHistory
+                      [ DealExplainabilityEngine ] ──► Human-readable bulleted points ("✓ Lowest in 180d")
                                      │
                                      ▼
-                    [ MonitoringHistoryService ]    ──► Record MonitoringRun
-                                     │
-                                     ▼
-                    [ MonitoringReportGenerator ]   ──► Generate structured report
-                                     │
-                                     ▼
-                    [ EventBus ]                    ──► Emit PriceChanged / LowestPriceReached
-```
-
----
-
-## Amazon India Merchant Architecture
-
-```
- Amazon URL ──► [ AmazonUrlNormalizer ] ──► Canonical URL
-                       │
-                       ▼
-             [ AmazonAsinExtractor ]    ──► ASIN
-                       │
-                       ▼
-             [ AmazonDomExtractor ]     ──► RawAmazonProduct
-                       │
-                       ▼
-             [ AmazonParsers ]          ──► Parsed values
-                       │
-                       ▼
-             [ AmazonProductMapper ]    ──► ProductDTO
-                       │
-                       ▼
-             [ AmazonPersistenceService ]─► MongoDB
+                    [ DealApprovalQueueService ]   ──► Enqueue into DealRepository (PENDING status)
 ```
 
 ---
 
 ### Key Architectural Patterns & ADRs
-- **[ADR-006: Monitoring Pipeline](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-006-monitoring-pipeline.md)** through **[ADR-032: DOM Version Detection](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-032-dom-version-detection.md)**: Previous phases.
-- **[ADR-033: Monitoring Configuration](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-033-monitoring-configuration.md)**: Per-product scheduling model.
-- **[ADR-034: Price Comparison](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-034-price-comparison.md)**: Trend classification service.
-- **[ADR-035: Monitoring History](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-035-monitoring-history.md)**: Execution audit trail.
-- **[ADR-036: Product Change Detection](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-036-product-change-detection.md)**: Multi-attribute change detector.
-- **[ADR-037: Monitoring Reports](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-037-monitoring-reports.md)**: Structured report generation.
-- **[ADR-038: Monitoring Locks](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-038-monitoring-locks.md)**: Execution concurrency lock.
+- **[ADR-006] to [ADR-038]**: Previous phases.
+- **[ADR-039: Historical Price Analysis](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-039-historical-price-analysis.md)**: 30/90/180-day & all-time low calculation.
+- **[ADR-040: Data-Driven Rule Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-040-rule-engine.md)**: Configurable rules with versioning & simulator.
+- **[ADR-041: Weighted Deal Scoring](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-041-deal-scoring.md)**: 0–100 weighted quality score.
+- **[ADR-042: Deal Confidence Engine](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-042-confidence-engine.md)**: Confidence percentage calculation.
+- **[ADR-043: Manual Approval Queue](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-043-approval-queue.md)**: Human verification workflow.
+- **[ADR-044: Deal Explainability](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-044-explainability.md)**: Transparent qualification bullet points.
+- **[ADR-045: Duplicate Prevention](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-045-duplicate-prevention.md)**: Duplicate window detection.
+- **[ADR-046: Product Deal Cooldown](file:///c:/NodeProjects/Crazy_Loots_India/docs/adr/ADR-046-cooldown-strategy.md)**: Dampening minor price fluctuations.
 
 ---
 
