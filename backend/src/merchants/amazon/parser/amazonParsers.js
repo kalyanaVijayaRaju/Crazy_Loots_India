@@ -15,7 +15,10 @@ class PriceParser {
       return 0;
     }
 
-    const match = priceStr.match(/(?:(?:₹|RS\.?|INR)\s*)?([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i);
+    // Ignore unit price text inside parentheses like (₹48,900.00 / 100 g)
+    const cleanPriceStr = priceStr.replace(/\(.*?\)/g, '').trim();
+
+    const match = cleanPriceStr.match(/(?:(?:₹|RS\.?|INR)\s*)?([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i);
     if (match && match[1]) {
       const num = parseFloat(match[1].replace(/,/g, ''));
       if (!isNaN(num) && num > 0 && num <= 10000000) {

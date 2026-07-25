@@ -5,10 +5,13 @@ class InternalShortenerProvider extends ShortUrlProviderInterface {
     super('internal');
   }
 
-  async shortenUrl(_url) {
+  async shortenUrl(url) {
+    if (url && typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
+      return url;
+    }
     const idProvider = require('../../core/pipeline/providers/idProvider');
     const slug = idProvider.generateTaskId().substring(0, 8);
-    return `https://loots.in/${slug}`;
+    return `https://www.amazon.in/dp/${slug}`;
   }
 }
 

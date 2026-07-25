@@ -18,11 +18,16 @@ class TelegramTemplate {
 
     const reasonsStr = safeExplanations.length ? `\n\n${safeExplanations.join('\n')}` : '';
 
+    const delivery = product.metadata?.delivery ? `\n🚚 *Delivery*: ${telegramFormatter.escapeMarkdown(product.metadata.delivery)}` : '';
+    const seller = product.metadata?.seller ? `\n🏢 *Seller*: ${telegramFormatter.escapeMarkdown(product.metadata.seller)}` : '';
+    const avail = product.availability === 'IN_STOCK' ? 'In Stock' : 'Limited Stock';
+
     return `🔥 *LOOT DEAL DETECTED!* 🔥\n\n` +
       `*${safeTitle}*\n\n` +
-      `💰 *Deal Price*: ₹${price.toLocaleString('en-IN')} (List Price: ₹${origPrice.toLocaleString('en-IN')})\n` +
-      `📉 *Discount*: ${discount}% OFF ${rating}${reasonsStr}\n\n` +
-      `🛒 *BUY NOW*: [Click Here to Buy](${shortUrl})`;
+      `💰 *Deal Price*: ₹${price.toLocaleString('en-IN')} (M.R.P.: ₹${origPrice.toLocaleString('en-IN')})\n` +
+      `📉 *Discount*: ${discount}% OFF ${rating}\n` +
+      `📦 *Status*: ${avail}${delivery}${seller}${reasonsStr}\n\n` +
+      `🛒 *BUY NOW ON AMAZON*: [Click Here to Buy](${shortUrl})`;
   }
 }
 
