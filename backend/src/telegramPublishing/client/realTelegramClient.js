@@ -58,6 +58,44 @@ class RealTelegramClient extends TelegramClientInterface {
 
   async sendPhoto(channelId, photoUrl, caption = '', options = {}) {
     logger.info(`[RealTelegramClient] Dispatching Telegram photo to channel '${channelId}' (API Method: sendPhoto)`);
+    const env = require('../../config/environment');
+
+    // Attempt direct image buffer upload to bypass Telegram CDN hotlink restriction
+    if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
+      try {
+        const imgRes = await fetch(photoUrl);
+        if (imgRes.ok) {
+          const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+          if (contentType.includes('image') || contentType.includes('octet-stream')) {
+            const buffer = Buffer.from(await imgRes.arrayBuffer());
+            const formData = new FormData();
+            formData.append('chat_id', channelId);
+            formData.append('caption', caption);
+            if (options.parse_mode) {
+              formData.append('parse_mode', options.parse_mode);
+            }
+            const blob = new Blob([buffer], { type: contentType.split(';')[0] });
+            formData.append('photo', blob, 'product.jpg');
+
+            const token = env.TELEGRAM_BOT_TOKEN;
+            const apiUrl = `https://api.telegram.org/bot${token}/sendPhoto`;
+            const resp = await fetch(apiUrl, {
+              method: 'POST',
+              body: formData,
+            });
+            const data = await resp.json();
+            if (data && data.ok) {
+              logger.info(`[RealTelegramClient] Telegram photo delivered successfully to '${channelId}' (Message ID: ${data.result?.message_id}) [Status: 200 OK]`);
+              return { ok: true, result: data.result };
+            }
+            logger.warn(`[RealTelegramClient] Direct photo upload returned non-ok: ${data.description}. Fallback to URL method.`);
+          }
+        }
+      } catch (uploadErr) {
+        logger.warn(`[RealTelegramClient] Buffer photo upload skipped due to network error: ${uploadErr.message}`);
+      }
+    }
+
     const payload = {
       chat_id: channelId,
       photo: photoUrl,

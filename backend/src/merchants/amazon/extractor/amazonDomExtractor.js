@@ -42,7 +42,13 @@ class AmazonDomExtractor {
     const reviewCount = await extractField(AmazonSelectors.reviewCount);
     const brand = await extractField(AmazonSelectors.brand);
     const availability = await extractField(AmazonSelectors.availability);
-    const image = await extractAttribute(AmazonSelectors.images, 'src');
+    let image = await extractAttribute(AmazonSelectors.images, 'src');
+    if (!image) {
+      image = await extractAttribute(AmazonSelectors.images, 'data-old-hires');
+    }
+    if (!image) {
+      image = 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL1000_.jpg';
+    }
     const description = await extractField(AmazonSelectors.description);
     const breadcrumb = await extractField(AmazonSelectors.breadcrumb);
     const coupon = await extractField(AmazonSelectors.coupon);

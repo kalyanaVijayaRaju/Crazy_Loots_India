@@ -15,25 +15,33 @@ class ImagePipeline {
     logger.debug(`[ImagePipeline] Processing image assets for '${originalImageUrl}'`);
 
     const clean = originalImageUrl.trim();
+    // Validate image URL format
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      return this.getFallbackImages();
+    }
+
+    // Amazon image URLs have resolution modifiers like ._SL1000_.jpg
+    const isAmazonCdn = clean.includes('media-amazon.com') || clean.includes('images-amazon.com');
+    
     return {
       original: clean,
-      thumbnail: `${clean}?dim=150x150`,
-      banner: `${clean}?dim=800x400`,
-      socialPreview: `${clean}?dim=1200x630`,
-      compressed: `${clean}?fmt=webp&q=80`,
-      watermarked: `${clean}?wm=crazyloots`,
+      thumbnail: isAmazonCdn ? clean.replace(/\._[A-Z0-9_]+_\./i, '._SL300_.') : clean,
+      banner: isAmazonCdn ? clean.replace(/\._[A-Z0-9_]+_\./i, '._SL800_.') : clean,
+      socialPreview: clean,
+      compressed: clean,
+      watermarked: clean,
     };
   }
 
   getFallbackImages() {
-    const fallback = 'https://m.media-amazon.com/images/I/sample.jpg';
+    const fallback = 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL1000_.jpg';
     return {
       original: fallback,
-      thumbnail: `${fallback}?dim=150x150`,
-      banner: `${fallback}?dim=800x400`,
-      socialPreview: `${fallback}?dim=1200x630`,
-      compressed: `${fallback}?fmt=webp&q=80`,
-      watermarked: `${fallback}?wm=crazyloots`,
+      thumbnail: 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL300_.jpg',
+      banner: 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL800_.jpg',
+      socialPreview: fallback,
+      compressed: fallback,
+      watermarked: fallback,
     };
   }
 }
