@@ -43,7 +43,8 @@ class PublishingPreparationService {
 
     // 4. Process Images
     const imgStart = Date.now();
-    const images = await imagePipeline.processImage(product.image);
+    const imgUrl = product.image || product.imageUrl || (Array.isArray(product.images) ? product.images[0] : null);
+    const images = await imagePipeline.processImage(imgUrl);
     const imgMs = Date.now() - imgStart;
 
     // 5. Render Messages
