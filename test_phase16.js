@@ -161,7 +161,7 @@ async function runTests() {
     console.log('── 5. Pipeline API ──');
     const pipelineRes = await request('/api/v1/pipeline/run', {
       method: 'POST',
-      body: { url: 'https://www.amazon.in/dp/B08N5WRWNW' },
+      body: { url: 'https://www.amazon.in/dp/B08N5WRWNW', forcePublish: true },
     });
     assert(pipelineRes.statusCode === 200, 'POST /pipeline/run returned 200');
     assert(pipelineRes.body.data.executionId, 'Pipeline execution ID returned');

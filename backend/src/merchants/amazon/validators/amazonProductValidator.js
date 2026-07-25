@@ -1,32 +1,51 @@
+const logger = require('../../../utils/logger');
+
 class AmazonProductValidator {
-  validate(productDTO) {
+  /**
+   * Validate extracted ProductDTO or Product object for completeness and consistency
+   * @param {Object} product - Extracted product object
+   * @returns {Object} { valid: boolean, errors: Array<string> }
+   */
+  validate(product) {
     const errors = [];
-    const warnings = [];
 
-    if (!productDTO.title || productDTO.title.trim().length === 0) {
-      errors.push('Product title is missing or empty.');
+    if (!product) {
+      return { valid: false, errors: ['Product object is null or undefined'] };
     }
 
-    if (typeof productDTO.currentPrice !== 'number' || productDTO.currentPrice < 0) {
-      errors.push('Invalid current price: must be a non-negative number.');
+    if (!product.productId || typeof product.productId !== 'string' || product.productId.trim().length === 0) {
+      errors.push('Missing or invalid ASIN / productId');
     }
 
-    if (!productDTO.image || productDTO.image.trim().length === 0) {
-      warnings.push('Product image URL is missing.');
+    if (!product.title || typeof product.title !== 'string' || product.title.trim().length < 3) {
+      errors.push('Missing or invalid product title');
     }
 
-    if (!productDTO.productId || productDTO.productId.length !== 10) {
-      errors.push(`Invalid ASIN: expected 10 characters, got '${productDTO.productId}'`);
+    if (typeof product.currentPrice !== 'number' || isNaN(product.currentPrice) || product.currentPrice <= 0) {
+      errors.push(`Invalid selling price: ${product.currentPrice}`);
     }
 
-    if (productDTO.currentPrice === 0) {
-      warnings.push('Current price evaluated to 0.');
+    if (product.originalPrice && (typeof product.originalPrice !== 'number' || product.originalPrice < product.currentPrice)) {
+      // Auto-correct originalPrice if smaller than currentPrice
+      product.originalPrice = product.currentPrice;
+    }
+
+    if (product.rating && (typeof product.rating !== 'number' || product.rating < 0 || product.rating > 5)) {
+      errors.push(`Invalid rating value: ${product.rating}`);
+    }
+
+    if (!product.image || typeof product.image !== 'string' || !product.image.startsWith('http')) {
+      errors.push('Missing or invalid product image URL');
+    }
+
+    const isValid = errors.length === 0;
+    if (!isValid) {
+      logger.warn(`[AmazonProductValidator] Product validation failed for '${product.productId || 'UNKNOWN'}': ${errors.join(', ')}`);
     }
 
     return {
-      valid: errors.length === 0,
+      valid: isValid,
       errors,
-      warnings,
     };
   }
 }

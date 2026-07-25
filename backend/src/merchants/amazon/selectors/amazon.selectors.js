@@ -4,13 +4,20 @@
 const AmazonSelectors = Object.freeze({
   title: ['#productTitle', '#title span', 'h1.a-size-large'],
   currentPrice: [
-    '.a-price.aok-align-center .a-offscreen',
-    '#priceblock_ourprice',
+    '#corePrice_desktop .a-price.aok-align-center .a-offscreen',
+    '#corePriceDisplay_desktop_feature_div .a-price.aok-align-center .a-offscreen',
+    '#corePrice_feature_div .a-price.aok-align-center .a-offscreen',
+    '#apex_desktop .a-price.aok-align-center .a-offscreen',
     '#priceblock_dealprice',
+    '#priceblock_ourprice',
+    '#corePrice_desktop .a-price .a-offscreen',
+    '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen',
+    '.a-price.aok-align-center .a-offscreen',
     '.a-price .a-offscreen',
-    '#corePrice_feature_div .a-offscreen',
   ],
   originalPrice: [
+    '#corePrice_desktop .a-price.a-text-price .a-offscreen',
+    '#corePriceDisplay_desktop_feature_div .a-price.a-text-price .a-offscreen',
     '.a-price.a-text-price .a-offscreen',
     '#priceblock_listprice',
     'span.a-text-price span.a-offscreen',

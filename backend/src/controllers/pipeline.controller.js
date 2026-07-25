@@ -8,8 +8,9 @@ const ResponseDTO = require('../dto/response.dto');
 class PipelineController {
   async runPipeline(req, res, next) {
     try {
-      const { url } = req.body;
-      const result = await pipelineAppService.runPipeline(url);
+      const { url, options, forcePublish, mockHistory } = req.body;
+      const pipelineOptions = options || { forcePublish, mockHistory };
+      const result = await pipelineAppService.runPipeline(url, pipelineOptions);
       res.status(200).json(ResponseDTO.success('Pipeline execution completed successfully', result));
     } catch (error) {
       next(error);

@@ -11,12 +11,12 @@ class PipelineAppService {
    * @param {string} url - Amazon product URL
    * @returns {Promise<Object>} Execution result summary
    */
-  async runPipeline(url) {
+  async runPipeline(url, options = {}) {
     if (!url) {
       throw ApiError.badRequest('Product URL is required');
     }
 
-    const report = await endToEndPipeline.executePipeline(url);
+    const report = await endToEndPipeline.executePipeline(url, options);
 
     return {
       executionId: report.executionId || null,

@@ -19,12 +19,13 @@ class EndToEndPipeline {
    * @param {Array<Object>} mockHistory - Optional price history array
    * @returns {Promise<Object>} Execution report object
    */
-  async executePipeline(amazonProductUrl, mockHistory = []) {
+  async executePipeline(amazonProductUrl, options = {}) {
     const traceId = `trc_${idProvider.generateTaskId()}`;
     const correlationId = `crl_${idProvider.generateTaskId()}`;
     const executionId = `exec_${idProvider.generateTaskId()}`;
     const startMs = Date.now();
     const stages = [];
+    const pipelineOpts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : { mockHistory: options };
 
     logger.info(`[EndToEndPipeline] Starting E2E pipeline '${executionId}' [Trace ID: ${traceId}] for URL: ${amazonProductUrl}`);
 
@@ -68,16 +69,16 @@ class EndToEndPipeline {
       rating: productDTO.rating || 4.2,
       reviewCount: productDTO.reviewCount || 100,
       availability: productDTO.availability || 'IN_STOCK',
-      productUrl: amazonProductUrl,
-      image: productDTO.image || 'https://m.media-amazon.com/images/I/sample.jpg',
-      metadata: productDTO.metadata || {},
+      url: amazonProductUrl,
     };
 
-    // Default price history if none provided
-    const defaultHistory = mockHistory.length ? mockHistory : [
-      { price: Math.round(productDTO.currentPrice * 1.5), timestamp: new Date(Date.now() - 30 * 24 * 3600 * 1000) },
-      { price: Math.round(productDTO.currentPrice * 1.3), timestamp: new Date(Date.now() - 10 * 24 * 3600 * 1000) },
-    ];
+    const defaultHistory = (Array.isArray(pipelineOpts.mockHistory) && pipelineOpts.mockHistory.length)
+      ? pipelineOpts.mockHistory
+      : [
+        { product: productDoc._id, price: productDTO.currentPrice * 1.3, recordedAt: new Date(Date.now() - 86400000 * 7) },
+        { product: productDoc._id, price: productDTO.currentPrice * 1.2, recordedAt: new Date(Date.now() - 86400000 * 3) },
+        { product: productDoc._id, price: productDTO.currentPrice, recordedAt: new Date() },
+      ];
 
     // 2. Stage 2: Product Monitoring & Price Comparison Engine
     const stage2Start = Date.now();
@@ -92,17 +93,28 @@ class EndToEndPipeline {
     // 3. Stage 3: Deal Detection Engine
     const stage3Start = Date.now();
     const dealReport = await dealDetectionEngine.evaluateProduct(productDoc, defaultHistory);
-
-    if (!dealReport) {
-      logger.warn(`[EndToEndPipeline] Stage 3 Deal Detection did not produce a deal (filtered/blocked).`);
-    }
+    const isDeal = Boolean(dealReport && dealReport.isDeal !== false);
 
     stages.push({
       stage: 'DEAL_DETECTION',
       durationMs: Date.now() - stage3Start,
-      data: { dealReport },
+      data: { dealReport, isDeal },
     });
-    logger.info(`[EndToEndPipeline] Stage 3 (Deal Detection) completed in ${stages[2].durationMs}ms`);
+    logger.info(`[EndToEndPipeline] Stage 3 (Deal Detection) completed in ${stages[2].durationMs}ms (isDeal: ${isDeal})`);
+
+    if (!isDeal && !pipelineOpts.forcePublish) {
+      logger.warn(`[EndToEndPipeline] Product '${asin}' is not a valid deal. Stopping pipeline execution before publishing.`);
+      return {
+        executionId,
+        traceId,
+        url: amazonProductUrl,
+        asin,
+        status: 'FILTERED_NO_DEAL',
+        dealDetected: false,
+        totalDurationMs: Date.now() - startMs,
+        stages,
+      };
+    }
 
     // 4. Stage 4: Approval Queue
     const stage4Start = Date.now();

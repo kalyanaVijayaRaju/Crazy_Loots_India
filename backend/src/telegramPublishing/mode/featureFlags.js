@@ -6,6 +6,7 @@ class FeatureFlagManager {
       ['ENABLE_DRY_RUN', true],
       ['ENABLE_MESSAGE_EDITING', true],
       ['ENABLE_MESSAGE_DELETION', true],
+      ['ENABLE_PHOTO_PUBLISHING', true],
     ]);
   }
 

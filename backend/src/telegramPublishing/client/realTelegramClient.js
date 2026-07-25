@@ -8,43 +8,70 @@ class RealTelegramClient extends TelegramClientInterface {
   }
 
   async sendMessage(channelId, text, options = {}) {
-    logger.info(`[RealTelegramClient] Sending LIVE message to channel '${channelId}'`);
-    const result = await telegramClient.sendMessage(channelId, text, options);
-    return { ok: true, result };
+    logger.info(`[RealTelegramClient] Dispatching Telegram message to channel '${channelId}' (API Method: sendMessage)`);
+    const payload = {
+      chat_id: channelId,
+      text,
+      ...(options.parse_mode && { parse_mode: options.parse_mode }),
+    };
+    try {
+      const result = await telegramClient.request('sendMessage', payload);
+      logger.info(`[RealTelegramClient] Telegram message delivered to '${channelId}' (Message ID: ${result?.message_id})`);
+      return { ok: true, result };
+    } catch (err) {
+      logger.error(`[RealTelegramClient] Telegram sendMessage failed for '${channelId}': ${err.message}`);
+      throw err;
+    }
   }
 
   async editMessage(channelId, messageId, text, options = {}) {
-    logger.info(`[RealTelegramClient] Editing LIVE message ${messageId} on channel '${channelId}'`);
+    logger.info(`[RealTelegramClient] Editing Telegram message ${messageId} on channel '${channelId}' (API Method: editMessageText)`);
     const payload = {
       chat_id: channelId,
       message_id: messageId,
       text,
       ...(options.parse_mode && { parse_mode: options.parse_mode }),
     };
-    const result = await telegramClient.request('editMessageText', payload);
-    return { ok: true, result };
+    try {
+      const result = await telegramClient.request('editMessageText', payload);
+      return { ok: true, result };
+    } catch (err) {
+      logger.error(`[RealTelegramClient] Telegram editMessageText failed: ${err.message}`);
+      throw err;
+    }
   }
 
   async deleteMessage(channelId, messageId) {
-    logger.info(`[RealTelegramClient] Deleting LIVE message ${messageId} on channel '${channelId}'`);
+    logger.info(`[RealTelegramClient] Deleting Telegram message ${messageId} on channel '${channelId}' (API Method: deleteMessage)`);
     const payload = {
       chat_id: channelId,
       message_id: messageId,
     };
-    const result = await telegramClient.request('deleteMessage', payload);
-    return { ok: true, result };
+    try {
+      const result = await telegramClient.request('deleteMessage', payload);
+      return { ok: true, result };
+    } catch (err) {
+      logger.error(`[RealTelegramClient] Telegram deleteMessage failed: ${err.message}`);
+      throw err;
+    }
   }
 
   async sendPhoto(channelId, photoUrl, caption = '', options = {}) {
-    logger.info(`[RealTelegramClient] Sending LIVE photo to channel '${channelId}'`);
+    logger.info(`[RealTelegramClient] Dispatching Telegram photo to channel '${channelId}' (API Method: sendPhoto)`);
     const payload = {
       chat_id: channelId,
       photo: photoUrl,
       caption,
       ...(options.parse_mode && { parse_mode: options.parse_mode }),
     };
-    const result = await telegramClient.request('sendPhoto', payload);
-    return { ok: true, result };
+    try {
+      const result = await telegramClient.request('sendPhoto', payload);
+      logger.info(`[RealTelegramClient] Telegram photo delivered to '${channelId}' (Message ID: ${result?.message_id})`);
+      return { ok: true, result };
+    } catch (err) {
+      logger.warn(`[RealTelegramClient] Telegram sendPhoto failed for '${channelId}': ${err.message}.`);
+      throw err;
+    }
   }
 
   async sendMediaGroup(channelId, mediaArray = [], options = {}) {

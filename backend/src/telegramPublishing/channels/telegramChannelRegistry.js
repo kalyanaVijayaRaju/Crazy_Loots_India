@@ -11,7 +11,7 @@ const defaultChannels = [
   },
   {
     id: 'chan_sandbox_main',
-    channelId: process.env.TELEGRAM_SANDBOX_CHANNEL_ID || '@crazyloots_sandbox',
+    channelId: process.env.TELEGRAM_SANDBOX_CHANNEL_ID || process.env.TELEGRAM_CHANNEL_ID || '@crazylootsindia_sandbox',
     name: 'Crazy Loots India Sandbox Channel',
     username: 'crazyloots_sandbox',
     priority: 90,

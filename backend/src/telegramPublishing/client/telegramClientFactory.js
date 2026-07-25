@@ -9,10 +9,9 @@ class TelegramClientFactory {
   }
 
   getClient() {
-    if (publishingModeManager.isLive()) {
-      return this.realClient;
-    }
-    return this.mockClient;
+    return publishingModeManager.isDryRun()
+      ? this.mockClient
+      : this.realClient;
   }
 }
 

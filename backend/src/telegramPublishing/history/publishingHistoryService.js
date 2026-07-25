@@ -11,6 +11,17 @@ class PublishingHistoryService {
     logger.info(`[PublishingHistoryService] Persisting publishing history for package '${record.packageId}'`);
     if (record.dealId && record.telegramMessageId) {
       try {
+        const existing = await telegramPostRepository.findOne({
+          telegramMessageId: record.telegramMessageId,
+          channelId: record.channelId,
+        });
+        if (existing) {
+          logger.info(`[PublishingHistoryService] Updating existing post record ${existing._id} for message ${record.telegramMessageId}`);
+          return await telegramPostRepository.update(existing._id, {
+            deal: record.dealId,
+            postedAt: record.postedAt || new Date(),
+          });
+        }
         return await telegramPostRepository.create({
           telegramMessageId: record.telegramMessageId,
           channelId: record.channelId,

@@ -109,21 +109,66 @@ async function runTests() {
     assert(productDTO.title && productDTO.currentPrice > 0, `Product extracted: ${productDTO.title.slice(0, 40)}... (Price: ₹${productDTO.currentPrice})`);
     console.log('');
 
-    // ──── 4. Multi-Mode Telegram Publishing ────
-    console.log('── 4. Telegram Multi-Mode Publishing ──');
-    assert(publishingModeManager.getMode() === 'DRY_RUN', 'Default publishing mode is DRY_RUN');
-    
-    const setModeRes = publishingModeManager.setMode('SANDBOX');
-    assert(setModeRes && publishingModeManager.getMode() === 'SANDBOX', 'PublishingModeManager switched to SANDBOX mode');
+    // ──── 4. Multi-Mode Telegram Publishing & Client Resolution ────
+    console.log('── 4. Telegram Multi-Mode Publishing & Client Resolution ──');
+    const telegramClientFactory = require('./backend/src/telegramPublishing/client/telegramClientFactory');
+    const MockTelegramClient = require('./backend/src/telegramPublishing/client/mockTelegramClient');
+    const RealTelegramClient = require('./backend/src/telegramPublishing/client/realTelegramClient');
+    const telegramFormatter = require('./backend/src/telegram/utils/telegramFormatter');
+    const featureFlags = require('./backend/src/telegramPublishing/mode/featureFlags');
+
+    // DRY_RUN mode check
     publishingModeManager.setMode('DRY_RUN');
-    assert(publishingModeManager.getMode() === 'DRY_RUN', 'PublishingModeManager reset to DRY_RUN mode');
+    let client = telegramClientFactory.getClient();
+    assert(client instanceof MockTelegramClient, 'DRY_RUN mode resolves MockTelegramClient');
+
+    // SANDBOX mode check
+    publishingModeManager.setMode('SANDBOX');
+    client = telegramClientFactory.getClient();
+    assert(client instanceof RealTelegramClient, 'SANDBOX mode resolves RealTelegramClient');
+
+    // LIVE mode check
+    publishingModeManager.setMode('LIVE');
+    client = telegramClientFactory.getClient();
+    assert(client instanceof RealTelegramClient, 'LIVE mode resolves RealTelegramClient');
+
+    publishingModeManager.setMode('DRY_RUN');
     console.log('');
 
-    // ──── 5. End-to-End Pipeline Execution ────
+    // ──── 4A. Telegram Markdown Formatting & Escaping ────
+    console.log('── 4A. Telegram Markdown Formatting & Special Characters ──');
+    const complexTitle = 'Apple MacBook Pro (13-inch_M1) [2020] & 100% "Original" + Free Shipping! 🔥 50% OFF';
+    const escapedTitle = telegramFormatter.escapeMarkdown(complexTitle);
+    assert(escapedTitle.includes('\\_M1'), 'Underscores in title properly escaped');
+    assert(escapedTitle.includes('\\[2020]'), 'Square brackets in title properly escaped');
+    assert(escapedTitle.includes('(') && escapedTitle.includes('-'), 'Parentheses and hyphens preserved cleanly');
+    assert(escapedTitle.includes('🔥') && escapedTitle.includes('&'), 'Emojis and ampersands preserved cleanly');
+    console.log('');
+
+    // ──── 4B. Feature Flags & Publishing Strategy ────
+    console.log('── 4B. Feature Flags & Photo/Message Strategy ──');
+    assert(featureFlags.isEnabled('ENABLE_PHOTO_PUBLISHING') === true, 'ENABLE_PHOTO_PUBLISHING feature flag is enabled by default');
+    featureFlags.setFlag('ENABLE_PHOTO_PUBLISHING', false);
+    assert(featureFlags.isEnabled('ENABLE_PHOTO_PUBLISHING') === false, 'Feature flag toggled to false');
+    featureFlags.setFlag('ENABLE_PHOTO_PUBLISHING', true);
+    console.log('');
+
+    // ──── 5. End-to-End Pipeline Execution (Live Amazon Product) ────
     console.log('── 5. End-to-End Pipeline Execution (Live Amazon Product) ──');
-    const e2eReport = await endToEndPipeline.executePipeline('https://www.amazon.in/dp/B08N5WRWNW');
+    const e2eReport = await endToEndPipeline.executePipeline('https://www.amazon.in/dp/B08N5WRWNW', { forcePublish: true });
     assert(e2eReport && e2eReport.executionId, 'End-to-End pipeline executed successfully');
     assert(e2eReport.stages && e2eReport.stages.length === 6, 'Pipeline completed all 6 execution stages');
+    console.log('');
+
+    // ──── 5A. SANDBOX Real Telegram Delivery ────
+    console.log('── 5A. SANDBOX Mode Real Telegram Delivery ──');
+    publishingModeManager.setMode('SANDBOX');
+    const sandboxReport = await endToEndPipeline.executePipeline('https://www.amazon.in/dp/B08N5WRWNW', { forcePublish: true });
+    assert(sandboxReport && sandboxReport.status !== 'FAILED', 'SANDBOX pipeline run completed without crashing');
+    const stage6Data = sandboxReport.stages?.find((s) => s.stage === 'TELEGRAM_PUBLISHING')?.data;
+    const realMsgId = stage6Data?.publishingResult?.messageId || stage6Data?.telegramMessageId;
+    assert(realMsgId, `SANDBOX Telegram publish returned real message_id: ${realMsgId}`);
+    publishingModeManager.setMode('DRY_RUN');
     console.log('');
 
     // ──── 6. REST API Platform Endpoints ────
@@ -133,7 +178,7 @@ async function runTests() {
 
     const pipelineRes = await request('/api/v1/pipeline/run', {
       method: 'POST',
-      body: { url: 'https://www.amazon.in/dp/B08N5WRWNW' },
+      body: { url: 'https://www.amazon.in/dp/B08N5WRWNW', forcePublish: true },
     });
     assert(pipelineRes.statusCode === 200, 'POST /pipeline/run returned 200 OK');
     assert(pipelineRes.body.data.executionId, 'Pipeline API returned executionId');

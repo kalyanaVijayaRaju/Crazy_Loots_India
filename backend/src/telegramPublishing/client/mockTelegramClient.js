@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 class MockTelegramClient extends TelegramClientInterface {
   constructor() {
     super('mock_telegram_client');
-    this.messageIdCounter = 1000;
+    this.messageIdCounter = (Math.floor(Date.now() / 1000) % 1000000) + 1000;
     this.sentMessages = [];
     this.editedMessages = [];
     this.deletedMessages = [];
