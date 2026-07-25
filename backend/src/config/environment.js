@@ -22,6 +22,11 @@ const env = cleanEnv(process.env, {
   }),
   TELEGRAM_BOT_TOKEN: str({ default: 'stub_token_for_phase1' }),
   TELEGRAM_CHANNEL_ID: str({ default: '@crazylootsindia' }),
-});
+
+  PUBLISHING_MODE: str({
+    choices: ['DRY_RUN', 'SANDBOX', 'LIVE'],
+    default: 'DRY_RUN',
+  })
+}); 
 
 module.exports = env;

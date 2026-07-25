@@ -2,6 +2,7 @@ const { connectDB } = require('../../config/database');
 const { merchantFactory } = require('../../merchants');
 const { playwrightAdapter } = require('../../browser');
 const publishingModeManager = require('../../telegramPublishing/mode/publishingModeManager');
+const env = require('../../config/environment');
 const logger = require('../../utils/logger');
 
 class StartupManager {
@@ -42,7 +43,7 @@ class StartupManager {
     }
 
     // 4. Set default publishing mode to DRY_RUN
-    publishingModeManager.setMode('DRY_RUN');
+    publishingModeManager.setMode(env.PUBLISHING_MODE);
 
     this.initialized = true;
     const durationMs = Date.now() - startMs;
