@@ -38,6 +38,29 @@ class PriceComparisonService {
       isHighestEver: currentNew >= highestEver,
     };
   }
+
+  calculateHistoricalStats(history = []) {
+    if (!Array.isArray(history) || history.length === 0) {
+      return { lowest: 0, highest: 0, average: 0, median: 0, volatility: 0 };
+    }
+    const prices = history
+      .map((item) => (typeof item === 'number' ? item : (item.price || item.currentPrice)))
+      .filter((p) => typeof p === 'number' && p > 0);
+
+    if (prices.length === 0) {
+      return { lowest: 0, highest: 0, average: 0, median: 0, volatility: 0 };
+    }
+    const sorted = [...prices].sort((a, b) => a - b);
+    const lowest = sorted[0];
+    const highest = sorted[sorted.length - 1];
+    const sum = sorted.reduce((acc, val) => acc + val, 0);
+    const average = parseFloat((sum / sorted.length).toFixed(2));
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 !== 0 ? sorted[mid] : parseFloat(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2));
+    const volatility = highest > 0 ? parseFloat((((highest - lowest) / highest) * 100).toFixed(2)) : 0;
+
+    return { lowest, highest, average, median, volatility };
+  }
 }
 
 module.exports = new PriceComparisonService();
