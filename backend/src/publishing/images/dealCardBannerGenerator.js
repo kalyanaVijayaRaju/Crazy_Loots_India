@@ -12,7 +12,12 @@ class DealCardBannerGenerator {
       return null;
     }
 
-    const image = product.image || product.imageUrl || (images && images.socialPreview) || (images && images.original) || (Array.isArray(product.images) ? product.images[0] : null);
+    const rawImgUrl = product.image || product.imageUrl || (images && images.socialPreview) || (images && images.original) || (Array.isArray(product.images) ? product.images[0] : null);
+    if (!rawImgUrl) {
+      return null;
+    }
+
+    const image = await this.getBase64Image(rawImgUrl);
     if (!image) {
       return null;
     }
@@ -94,6 +99,25 @@ class DealCardBannerGenerator {
       }
       return null;
     }
+  }
+
+  async getBase64Image(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    try {
+      const res = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      });
+      if (res.ok) {
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const mime = res.headers.get('content-type') || 'image/jpeg';
+        return `data:${mime.split(';')[0]};base64,${buffer.toString('base64')}`;
+      }
+    } catch (_e) {}
+    return imageUrl;
   }
 }
 

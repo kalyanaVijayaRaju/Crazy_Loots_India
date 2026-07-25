@@ -71,22 +71,9 @@ class AmazonAdapter extends MerchantAdapter {
       }
     }
 
-    // Fallback baseline if browser extraction returned empty title or price
+    // Reject if browser extraction failed to extract title or price
     if (!rawData || !rawData.title) {
-      rawData = {
-        title: `Amazon India Item (${asin})`,
-        currentPrice: '₹1,990',
-        originalPrice: '₹2,990',
-        rating: '4.4 out of 5 stars',
-        reviewCount: '1,200 ratings',
-        brand: 'Amazon',
-        availability: 'In stock.',
-        image: 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL1000_.jpg',
-        breadcrumb: 'Electronics',
-      };
-    } else if (!rawData.currentPrice) {
-      rawData.currentPrice = '₹1,990';
-      rawData.originalPrice = rawData.originalPrice || '₹2,990';
+      throw new Error(`Amazon extraction failed for ASIN '${asin}'. Live page content could not be parsed.`);
     }
 
     const productDTO = amazonProductMapper.mapToDTO(rawData, asin);

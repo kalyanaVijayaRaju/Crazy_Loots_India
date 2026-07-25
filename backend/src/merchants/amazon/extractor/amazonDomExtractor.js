@@ -1,4 +1,5 @@
 const AmazonSelectors = require('../selectors/amazon.selectors');
+const { PriceParser } = require('../parser/amazonParsers');
 const domService = require('../../../browser/dom/domService');
 const logger = require('../../../utils/logger');
 
@@ -35,8 +36,37 @@ class AmazonDomExtractor {
       return '';
     };
 
-    const title = await extractField(AmazonSelectors.title);
-    const currentPrice = await extractField(AmazonSelectors.currentPrice);
+    let title = await extractField(AmazonSelectors.title);
+    if (!title) {
+      title = await page.evaluate(() => {
+        const ogTitle = document.querySelector('meta[property="og:title"]') || document.querySelector('meta[name="title"]');
+        if (ogTitle && ogTitle.content) {
+          return ogTitle.content.replace(/^Amazon\.in:\s*/i, '').replace(/\s*:\s*Amazon\.in.*$/i, '').trim();
+        }
+        const documentTitle = document.title;
+        if (documentTitle) {
+          return documentTitle.replace(/^Amazon\.in:\s*/i, '').replace(/\s*:\s*Amazon\.in.*$/i, '').trim();
+        }
+        return '';
+      }).catch(() => '');
+    }
+
+    let currentPrice = await extractField(AmazonSelectors.currentPrice);
+    if (!currentPrice || PriceParser.parse(currentPrice) === 0) {
+      currentPrice = await page.evaluate(() => {
+        const metaPrice = document.querySelector('meta[property="og:price:amount"]');
+        if (metaPrice && metaPrice.content) return metaPrice.content;
+        const prices = Array.from(document.querySelectorAll('#corePrice_desktop .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, .a-price .a-offscreen, #priceblock_ourprice, #priceblock_dealprice, span.a-color-price'));
+        for (const p of prices) {
+          const txt = (p.innerText || p.textContent || '').trim();
+          if (txt && (txt.includes('₹') || /\d/.test(txt)) && !txt.toLowerCase().includes('/month') && !txt.toLowerCase().includes('emi')) {
+            return txt;
+          }
+        }
+        return '';
+      }).catch(() => '');
+    }
+
     const originalPrice = await extractField(AmazonSelectors.originalPrice);
     const rating = await extractField(AmazonSelectors.rating);
     const reviewCount = await extractField(AmazonSelectors.reviewCount);
@@ -47,7 +77,10 @@ class AmazonDomExtractor {
       image = await extractAttribute(AmazonSelectors.images, 'data-old-hires');
     }
     if (!image) {
-      image = 'https://m.media-amazon.com/images/I/61MB86jV6rL._SL1000_.jpg';
+      image = await page.evaluate(() => {
+        const ogImg = document.querySelector('meta[property="og:image"]') || document.querySelector('meta[name="twitter:image"]');
+        return ogImg ? ogImg.content : '';
+      }).catch(() => '');
     }
     const description = await extractField(AmazonSelectors.description);
     const breadcrumb = await extractField(AmazonSelectors.breadcrumb);
