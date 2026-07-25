@@ -1,0 +1,75 @@
+openapi: 3.0.0
+info:
+  title: Crazy Loots India — Backend REST API Platform
+  version: 1.0.0
+  description: Complete production-grade REST API platform for deal discovery, product monitoring, Telegram publishing, and system observability.
+  contact:
+    name: Crazy Loots India Engineering
+    email: support@crazyloots.in
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local Development Server (v1)
+paths:
+  /pipeline/run:
+    post:
+      summary: Run End-to-End Deal Discovery Pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  example: https://www.amazon.in/dp/B08N5WRWNW
+      responses:
+        '200':
+          description: Pipeline execution report
+  /products:
+    get:
+      summary: List Products
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Product list
+    post:
+      summary: Create Product
+      responses:
+        '201':
+          description: Product created
+  /products/{id}:
+    get:
+      summary: Get Product by ID
+      responses:
+        '200':
+          description: Product object
+  /monitoring/run:
+    post:
+      summary: Trigger Monitoring Cycle
+      responses:
+        '200':
+          description: Cycle executed
+  /deals:
+    get:
+      summary: List Deals
+      responses:
+        '200':
+          description: Deals list
+  /system/status:
+    get:
+      summary: System Status
+      responses:
+        '200':
+          description: Status overview

@@ -32,6 +32,10 @@ if (env.NODE_ENV !== 'test') {
   app.use(morgan('combined', { stream: logger.stream }));
 }
 
+// Mount Swagger Documentation
+const swaggerSetup = require('./swagger/swaggerSetup');
+swaggerSetup.setup(app, env.API_PREFIX);
+
 // API Routes
 app.use(env.API_PREFIX, routes);
 

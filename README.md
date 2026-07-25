@@ -94,32 +94,25 @@ TELEGRAM_CHANNEL_ID=@crazylootsindia
 
 ---
 
-## API Endpoints
+## REST API Platform (`/api/v1/`)
 
-### 1. System Health Check
-- **GET** `/api/v1/health`
-- **Response**: Returns system status, uptime, database health, and memory stats.
+The platform exposes its capabilities via a production-grade REST API platform.
 
-### 2. Send Telegram Message
-- **POST** `/api/v1/telegram/send`
-- **Headers**: `Content-Type: application/json`
-- **Request Body**:
-  ```json
-  {
-    "message": "🔥 Exclusive Loot Deal Alert!"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "message": "Telegram message sent successfully",
-    "data": {
-      "messageId": 42
-    }
-  }
-  ```
+- **Interactive Swagger UI**: [http://localhost:5000/api/v1/docs](http://localhost:5000/api/v1/docs)
+- **OpenAPI 3.0 Specification**: [http://localhost:5000/api/v1/docs/openapi.json](http://localhost:5000/api/v1/docs/openapi.json)
+- **Detailed API Guide**: [docs/api.md](file:///c:/NodeProjects/Crazy_Loots_India/docs/api.md)
+
+### Key API Groups
+1. **Pipeline API** (`/api/v1/pipeline/run`): Run full E2E deal discovery pipeline.
+2. **Product APIs** (`/api/v1/products`): Product CRUD, monitoring, extraction, price history, and statistics.
+3. **Monitoring APIs** (`/api/v1/monitoring`): Trigger monitoring cycles, pause/resume, jobs, and history.
+4. **Deal APIs** (`/api/v1/deals`): List deals, get deal, detect, approve, reject, replay.
+5. **Affiliate APIs** (`/api/v1/affiliate`): Link conversion, providers, system status.
+6. **Publishing APIs** (`/api/v1/publishing`): Package preparation, message preview, publishing execution (DRY_RUN / LIVE), retry, rollback.
+7. **Telegram APIs** (`/api/v1/telegram`): Test messages, dry-run broadcasts, channel status, post history.
+8. **System APIs** (`/api/v1/system`): System status, version, runtime configuration, feature flags.
+9. **Admin APIs** (`/api/v1/admin`): Database seeding, reset, reindexing, execution replay.
+10. **Observability APIs** (`/api/v1/observability`): Health probes, metrics, alerts, timelines, circuit breakers, diagnostics, production readiness.
 
 ---
 

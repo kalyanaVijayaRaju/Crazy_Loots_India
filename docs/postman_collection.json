@@ -1,0 +1,79 @@
+{
+  "info": {
+    "name": "Crazy Loots India — REST API Collection",
+    "description": "Postman Collection for Crazy Loots India REST API (v1)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Pipeline",
+      "item": [
+        {
+          "name": "Run Pipeline",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://www.amazon.in/dp/B08N5WRWNW\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/pipeline/run",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "pipeline", "run"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5000/api/v1/products?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://www.amazon.in/dp/B08N5WRWNW\",\n  \"currentPrice\": 1299\n}"
+            },
+            "url": "http://localhost:5000/api/v1/products"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "System Status",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5000/api/v1/system/status"
+          }
+        },
+        {
+          "name": "System Version",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5000/api/v1/system/version"
+          }
+        }
+      ]
+    }
+  ]
+}

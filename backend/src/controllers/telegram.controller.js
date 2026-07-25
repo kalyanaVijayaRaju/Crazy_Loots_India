@@ -1,36 +1,51 @@
-const { telegramService } = require('../telegram');
-const asyncHandler = require('../utils/asyncHandler');
-const ApiResponse = require('../utils/ApiResponse');
-const ApiError = require('../utils/ApiError');
+const { telegramAppService } = require('../application');
+const ResponseDTO = require('../dto/response.dto');
 
 /**
- * @desc    Send message to Telegram Channel
- * @route   POST /api/v1/telegram/send
- * @access  Public (or protected in production)
+ * Telegram Controller
+ * Thin controller for Telegram bot interactions & broadcasts
  */
-const sendTelegramMessage = asyncHandler(async (req, res) => {
-  const { message, parseMode } = req.body;
-
-  if (message === undefined || message === null) {
-    throw ApiError.badRequest('Message is required');
+class TelegramController {
+  async sendTestMessage(req, res, next) {
+    try {
+      const result = await telegramAppService.sendTestMessage(req.body);
+      res.status(200).json(ResponseDTO.success('Test message processed', result));
+    } catch (error) {
+      next(error);
+    }
   }
 
-  if (typeof message !== 'string') {
-    throw ApiError.badRequest('Message must be a string');
+  async runDryRun(req, res, next) {
+    try {
+      const result = await telegramAppService.runDryRunBroadcast(req.body);
+      res.status(200).json(ResponseDTO.success('Dry run broadcast executed', result));
+    } catch (error) {
+      next(error);
+    }
   }
 
-  if (message.trim() === '') {
-    throw ApiError.badRequest('Message cannot be empty');
+  async getChannels(req, res, next) {
+    try {
+      const result = await telegramAppService.getChannels();
+      res.status(200).json(ResponseDTO.success('Channels list retrieved', result));
+    } catch (error) {
+      next(error);
+    }
   }
 
-  const result = await telegramService.sendMessage(message.trim(), parseMode || null);
+  async getHistory(req, res, next) {
+    try {
+      const result = await telegramAppService.getTelegramHistory(req.query);
+      res.status(200).json(ResponseDTO.paginated('Telegram history retrieved', result.items, result.total, result.page, result.limit));
+    } catch (error) {
+      next(error);
+    }
+  }
 
-  return ApiResponse.success(res, 'Telegram message sent successfully', {
-    messageId: result?.message_id,
-    chatId: result?.chat?.id,
-  });
-});
+  // Backwards compatible method
+  async sendTelegramMessage(req, res, next) {
+    return this.sendTestMessage(req, res, next);
+  }
+}
 
-module.exports = {
-  sendTelegramMessage,
-};
+module.exports = new TelegramController();
