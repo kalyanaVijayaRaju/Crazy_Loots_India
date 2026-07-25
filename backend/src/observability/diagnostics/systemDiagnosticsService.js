@@ -1,4 +1,3 @@
-const logger = require('../../utils/logger');
 const healthCheckService = require('../health/healthCheckService');
 const circuitBreakerRegistry = require('../circuitBreaker/circuitBreakerRegistry');
 const metricsAggregator = require('../metrics/metricsAggregator');

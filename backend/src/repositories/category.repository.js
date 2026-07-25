@@ -11,6 +11,19 @@ class CategoryRepository extends BaseRepository {
     return this.findOne({ slug: slug.toLowerCase().trim() });
   }
 
+  async findOrCreateBySlug(slug = 'electronics', name = 'Electronics') {
+    const cleanSlug = slug.toLowerCase().trim();
+    let category = await this.findBySlug(cleanSlug);
+    if (!category) {
+      category = await this.create({
+        name,
+        slug: cleanSlug,
+        status: CategoryStatus.ACTIVE,
+      });
+    }
+    return category;
+  }
+
   async findSubcategories(parentId) {
     return this.findMany({ parentCategory: parentId, status: CategoryStatus.ACTIVE });
   }

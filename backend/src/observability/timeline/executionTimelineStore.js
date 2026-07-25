@@ -68,7 +68,7 @@ class ExecutionTimelineStore {
    */
   stageStarted(executionId, stage) {
     const timeline = this._timelines.get(executionId);
-    if (!timeline || !timeline.stages[stage]) return;
+    if (!timeline || !timeline.stages[stage]) {return;}
 
     timeline.stages[stage].status = 'RUNNING';
     timeline.stages[stage].startedAt = Date.now();
@@ -82,7 +82,7 @@ class ExecutionTimelineStore {
    */
   stageCompleted(executionId, stage, result = {}) {
     const timeline = this._timelines.get(executionId);
-    if (!timeline || !timeline.stages[stage]) return;
+    if (!timeline || !timeline.stages[stage]) {return;}
 
     const stageData = timeline.stages[stage];
     stageData.status = 'COMPLETED';
@@ -99,7 +99,7 @@ class ExecutionTimelineStore {
    */
   stageFailed(executionId, stage, error) {
     const timeline = this._timelines.get(executionId);
-    if (!timeline || !timeline.stages[stage]) return;
+    if (!timeline || !timeline.stages[stage]) {return;}
 
     const stageData = timeline.stages[stage];
     stageData.status = 'FAILED';
@@ -115,7 +115,7 @@ class ExecutionTimelineStore {
    */
   stageRetried(executionId, stage) {
     const timeline = this._timelines.get(executionId);
-    if (!timeline || !timeline.stages[stage]) return;
+    if (!timeline || !timeline.stages[stage]) {return;}
     timeline.stages[stage].retries += 1;
   }
 
@@ -125,7 +125,7 @@ class ExecutionTimelineStore {
    */
   complete(executionId) {
     const timeline = this._timelines.get(executionId);
-    if (!timeline) return;
+    if (!timeline) {return;}
     timeline.completedAt = new Date().toISOString();
   }
 

@@ -4,7 +4,7 @@
  */
 class PublishingMapper {
   static toDTO(doc) {
-    if (!doc) return null;
+    if (!doc) {return null;}
 
     const raw = doc.toObject ? doc.toObject() : doc;
 
@@ -21,7 +21,7 @@ class PublishingMapper {
   }
 
   static toListDTO(docs) {
-    if (!Array.isArray(docs)) return [];
+    if (!Array.isArray(docs)) {return [];}
     return docs.map(PublishingMapper.toDTO).filter(Boolean);
   }
 }

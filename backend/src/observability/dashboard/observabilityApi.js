@@ -65,9 +65,9 @@ class ObservabilityApi {
     // GET /observability/alerts
     router.get('/alerts', (req, res) => {
       const filter = {};
-      if (req.query.severity) filter.severity = req.query.severity;
-      if (req.query.type) filter.type = req.query.type;
-      if (req.query.unacknowledged === 'true') filter.unacknowledgedOnly = true;
+      if (req.query.severity) {filter.severity = req.query.severity;}
+      if (req.query.type) {filter.type = req.query.type;}
+      if (req.query.unacknowledged === 'true') {filter.unacknowledgedOnly = true;}
 
       const alerts = alertEngine.getAlerts(filter);
       const summary = alertEngine.getSummary();

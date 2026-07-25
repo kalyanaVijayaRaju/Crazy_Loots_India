@@ -54,7 +54,7 @@ class PerformanceProfiler {
    */
   startMeasure(sessionId, category) {
     const profile = this._profiles.get(sessionId);
-    if (!profile) return;
+    if (!profile) {return;}
 
     profile.entries[category] = {
       category,
@@ -73,7 +73,7 @@ class PerformanceProfiler {
    */
   endMeasure(sessionId, category, metadata = {}) {
     const profile = this._profiles.get(sessionId);
-    if (!profile || !profile.entries[category]) return;
+    if (!profile || !profile.entries[category]) {return;}
 
     const entry = profile.entries[category];
     entry.completedAt = Date.now();
@@ -88,7 +88,7 @@ class PerformanceProfiler {
    */
   endSession(sessionId) {
     const profile = this._profiles.get(sessionId);
-    if (!profile) return null;
+    if (!profile) {return null;}
 
     profile.completedAt = Date.now();
 
@@ -114,7 +114,7 @@ class PerformanceProfiler {
    */
   generateReport(sessionId) {
     const profile = this._profiles.get(sessionId);
-    if (!profile) return null;
+    if (!profile) {return null;}
 
     const entries = Object.values(profile.entries);
     const totalMs = profile.completedAt

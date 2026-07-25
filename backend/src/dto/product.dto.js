@@ -3,7 +3,7 @@
  */
 class ProductDTO {
   static validateCreate(req) {
-    const { url, asin, title, currentPrice } = req.body || {};
+    const { url, asin, currentPrice } = req.body || {};
     const errors = [];
 
     if (!url && !asin) {
@@ -17,7 +17,7 @@ class ProductDTO {
   }
 
   static validateUpdate(req) {
-    const { title, currentPrice, rating } = req.body || {};
+    const { currentPrice, rating } = req.body || {};
     const errors = [];
 
     if (currentPrice !== undefined && (typeof currentPrice !== 'number' || currentPrice < 0)) {

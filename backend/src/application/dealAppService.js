@@ -17,8 +17,8 @@ class DealAppService {
 
     if (mongoose.connection.readyState === 1) {
       const filter = {};
-      if (query.status) filter.status = query.status;
-      if (query.minScore) filter.dealScore = { $gte: Number(query.minScore) };
+      if (query.status) {filter.status = query.status;}
+      if (query.minScore) {filter.dealScore = { $gte: Number(query.minScore) };}
 
       const sort = {};
       if (query.sort) {
@@ -54,7 +54,7 @@ class DealAppService {
   async getDealById(id) {
     if (mongoose.connection.readyState === 1) {
       const doc = await Deal.findById(id).populate('product').catch(() => null);
-      if (doc) return DealMapper.toDTO(doc);
+      if (doc) {return DealMapper.toDTO(doc);}
     }
 
     return {
@@ -88,7 +88,7 @@ class DealAppService {
   async approveDeal(id) {
     if (mongoose.connection.readyState === 1) {
       const deal = await Deal.findByIdAndUpdate(id, { status: 'APPROVED' }, { new: true }).catch(() => null);
-      if (deal) return DealMapper.toDTO(deal);
+      if (deal) {return DealMapper.toDTO(deal);}
     }
 
     return { id, status: 'APPROVED', approvedAt: new Date().toISOString() };
@@ -97,7 +97,7 @@ class DealAppService {
   async rejectDeal(id, reason = 'Manually rejected') {
     if (mongoose.connection.readyState === 1) {
       const deal = await Deal.findByIdAndUpdate(id, { status: 'REJECTED' }, { new: true }).catch(() => null);
-      if (deal) return DealMapper.toDTO(deal);
+      if (deal) {return DealMapper.toDTO(deal);}
     }
 
     return { id, status: 'REJECTED', reason, rejectedAt: new Date().toISOString() };

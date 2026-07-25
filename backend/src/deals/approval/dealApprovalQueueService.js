@@ -1,4 +1,5 @@
-const { dealRepository, dealHistoryRepository } = require('../../repositories');
+const mongoose = require('mongoose');
+const { dealRepository, dealHistoryRepository, merchantRepository } = require('../../repositories');
 const { DealStatus } = require('../../constants/enums');
 const logger = require('../../utils/logger');
 
@@ -31,9 +32,19 @@ class DealApprovalQueueService {
 
     // Record initial history snippet via DealHistoryRepository
     try {
+      let merchantId = dealData.merchant;
+      if (!merchantId || !mongoose.Types.ObjectId.isValid(merchantId)) {
+        if (mongoose.connection.readyState === 1) {
+          const merchantDoc = await merchantRepository.findOrCreateBySlug('amazon', 'Amazon India', 'https://www.amazon.in');
+          merchantId = merchantDoc._id;
+        } else {
+          merchantId = new mongoose.Types.ObjectId();
+        }
+      }
+
       await dealHistoryRepository.create({
         product: dealData.product,
-        merchant: dealData.merchant,
+        merchant: merchantId,
         price: dealData.dealPrice,
         discountPercentage: dealData.discountPercentage || 0,
         dealScore: dealData.dealScore || 0,

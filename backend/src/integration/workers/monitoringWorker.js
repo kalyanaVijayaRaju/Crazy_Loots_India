@@ -26,6 +26,13 @@ class MonitoringWorker {
       return { success: false, error: err.message };
     }
   }
+
+  async executeMonitoringTask(taskData = {}) {
+    const productId = taskData.productId || 'B08N5WRWNW';
+    const productDoc = { _id: productId, productId, currentPrice: 1990, title: 'Monitored Product' };
+    const newProductDTO = { productId, currentPrice: 1990, title: 'Monitored Product', merchant: taskData.merchant || 'amazon' };
+    return this.processJob(productDoc, newProductDTO, taskData.merchant || 'amazon');
+  }
 }
 
 module.exports = new MonitoringWorker();

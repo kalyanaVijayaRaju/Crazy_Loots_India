@@ -67,23 +67,37 @@ class ProductMonitoringService {
         updateData.highestEver = newProductDTO.currentPrice;
       }
 
-      try {
-        await productRepository.update(productId, updateData);
-      } catch (err) {
-        logger.warn(`[ProductMonitoringService] Product update in DB skipped: ${err.message}`);
+      const mongoose = require('mongoose');
+      let targetProductObjId = productDoc._id;
+
+      if (!targetProductObjId || !mongoose.Types.ObjectId.isValid(targetProductObjId)) {
+        if (mongoose.connection.readyState === 1 && newProductDTO.productId) {
+          const found = await productRepository.findOne({ productId: newProductDTO.productId });
+          if (found) {
+            targetProductObjId = found._id;
+          }
+        }
       }
 
-      // 4. Persist price history
-      try {
-        await priceHistoryRepository.create({
-          product: productId,
-          price: newProductDTO.currentPrice,
-          originalPrice: newProductDTO.originalPrice || newProductDTO.currentPrice,
-          discountPercentage: newProductDTO.discountPercentage || 0,
-          recordedAt: new Date(),
-        });
-      } catch (err) {
-        logger.warn(`[ProductMonitoringService] Price history create skipped: ${err.message}`);
+      if (targetProductObjId && mongoose.Types.ObjectId.isValid(targetProductObjId)) {
+        try {
+          await productRepository.update(targetProductObjId, updateData);
+        } catch (err) {
+          logger.warn(`[ProductMonitoringService] Product update in DB skipped: ${err.message}`);
+        }
+
+        // 4. Persist price history
+        try {
+          await priceHistoryRepository.create({
+            product: targetProductObjId,
+            price: newProductDTO.currentPrice,
+            originalPrice: newProductDTO.originalPrice || newProductDTO.currentPrice,
+            discountPercentage: newProductDTO.discountPercentage || 0,
+            recordedAt: new Date(),
+          });
+        } catch (err) {
+          logger.warn(`[ProductMonitoringService] Price history create skipped: ${err.message}`);
+        }
       }
 
       const durationMs = Date.now() - startMs;

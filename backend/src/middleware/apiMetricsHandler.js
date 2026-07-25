@@ -9,7 +9,6 @@ const apiMetricsHandler = (req, res, next) => {
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const path = req.baseUrl ? `${req.baseUrl}${req.path}` : req.path;
     const method = req.method;
     const statusCode = res.statusCode;
 

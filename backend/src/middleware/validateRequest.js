@@ -7,7 +7,7 @@ const ApiError = require('./apiError');
  */
 const validateRequest = (validatorFn) => {
   return (req, _res, next) => {
-    if (typeof validatorFn !== 'function') return next();
+    if (typeof validatorFn !== 'function') {return next();}
 
     const { error } = validatorFn(req);
     if (error) {

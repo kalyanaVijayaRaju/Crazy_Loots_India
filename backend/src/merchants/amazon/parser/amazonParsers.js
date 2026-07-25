@@ -3,6 +3,13 @@ class PriceParser {
     if (!priceStr || typeof priceStr !== 'string') {
       return 0;
     }
+    const match = priceStr.match(/(?:(?:₹|RS\.?|INR)\s*)?([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)/i);
+    if (match && match[1]) {
+      const num = parseFloat(match[1].replace(/,/g, ''));
+      if (!isNaN(num) && num > 0) {
+        return num;
+      }
+    }
     const clean = priceStr.replace(/[^0-9.]/g, '');
     const val = parseFloat(clean);
     return isNaN(val) ? 0 : val;

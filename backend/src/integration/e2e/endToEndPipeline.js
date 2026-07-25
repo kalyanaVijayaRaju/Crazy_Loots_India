@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const startupManager = require('../startup/startupManager');
 const { merchantFactory } = require('../../merchants');
+const { merchantRepository } = require('../../repositories');
 const amazonAsinExtractor = require('../../merchants/amazon/utils/amazonAsinExtractor');
 const { productMonitoringService } = require('../../monitoring');
 const { dealDetectionEngine, dealApprovalQueueService } = require('../../deals');
@@ -48,14 +49,19 @@ class EndToEndPipeline {
     logger.info(`[EndToEndPipeline] Stage 1 (Extraction) completed in ${stages[0].durationMs}ms`);
 
     // Construct valid ObjectId for DB models
+    let merchantObjectId = new mongoose.Types.ObjectId();
+    if (mongoose.connection.readyState === 1) {
+      const merchantDoc = await merchantRepository.findOrCreateBySlug('amazon', 'Amazon India', 'https://www.amazon.in');
+      merchantObjectId = merchantDoc._id;
+    }
+
     const productObjectId = new mongoose.Types.ObjectId();
     const dealObjectId = new mongoose.Types.ObjectId();
-    const merchantObjectId = new mongoose.Types.ObjectId();
 
     const productDoc = {
       _id: productObjectId,
       productId: productDTO.productId,
-      merchant: 'amazon',
+      merchant: merchantObjectId,
       title: productDTO.title,
       currentPrice: productDTO.currentPrice,
       originalPrice: productDTO.originalPrice || productDTO.currentPrice,

@@ -75,7 +75,7 @@ class ProductAppService {
 
     if (mongoose.connection.readyState === 1) {
       const filter = {};
-      if (query.merchant) filter.merchant = query.merchant;
+      if (query.merchant) {filter.merchant = query.merchant;}
       if (query.search) {
         filter.$or = [
           { title: { $regex: query.search, $options: 'i' } },

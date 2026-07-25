@@ -133,7 +133,7 @@ class CircuitBreaker {
   }
 
   /** Handle failed call */
-  _onFailure(error) {
+  _onFailure(_error) {
     this._failureCount += 1;
     this._lastFailureTime = Date.now();
 
@@ -149,7 +149,7 @@ class CircuitBreaker {
   /** Transition state and notify listeners */
   _transitionTo(newState) {
     const oldState = this._state;
-    if (oldState === newState) return;
+    if (oldState === newState) {return;}
 
     this._state = newState;
     logger.info(`[CircuitBreaker] '${this.name}' transitioned ${oldState} → ${newState}`);

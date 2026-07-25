@@ -130,8 +130,8 @@ class TraceTimelineService {
   queryExecutions(query = {}) {
     const all = Array.from(this._executions.values());
     return all.filter((exec) => {
-      if (query.traceId && exec.traceId !== query.traceId) return false;
-      if (query.correlationId && exec.correlationId !== query.correlationId) return false;
+      if (query.traceId && exec.traceId !== query.traceId) {return false;}
+      if (query.correlationId && exec.correlationId !== query.correlationId) {return false;}
       return true;
     });
   }

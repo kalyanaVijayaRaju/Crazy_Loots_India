@@ -29,10 +29,27 @@ class PlaywrightAdapter {
   async launchBrowser(type = 'chromium', options = {}) {
     if (this.isNativeAvailable() && this.playwrightModule[type]) {
       logger.info(`[PlaywrightAdapter] Launching native ${type} browser...`);
-      return this.playwrightModule[type].launch(options);
+      try {
+        const browser = await this.playwrightModule[type].launch(options);
+        return browser;
+      } catch (launchErr) {
+        logger.warn(`[PlaywrightAdapter] Native ${type} browser launch failed: ${launchErr.message}`);
+        // If browser binary missing error, try auto-installing
+        if (launchErr.message.includes('Executable doesn\'t exist') || launchErr.message.includes('Please run the following command')) {
+          try {
+            logger.info('[PlaywrightAdapter] Attempting automatic browser binary installation...');
+            const { execSync } = require('child_process');
+            execSync('npx playwright install chromium', { stdio: 'ignore' });
+            logger.info('[PlaywrightAdapter] Browser installation completed. Retrying browser launch...');
+            return await this.playwrightModule[type].launch(options);
+          } catch (installErr) {
+            logger.error(`[PlaywrightAdapter] Auto-installation of browser binaries failed: ${installErr.message}`);
+          }
+        }
+      }
     }
 
-    logger.debug(`[PlaywrightAdapter] Creating mock ${type} browser instance...`);
+    logger.warn(`[PlaywrightAdapter] Native Playwright unavailable or failed. Operating in architecture mock mode.`);
     return {
       _isMock: true,
       type,

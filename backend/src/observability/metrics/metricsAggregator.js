@@ -60,7 +60,7 @@ class MetricsAggregator {
    */
   getHistogramSummary(name) {
     const values = this._histograms[name];
-    if (!values || values.length === 0) return null;
+    if (!values || values.length === 0) {return null;}
 
     const sorted = [...values].sort((a, b) => a - b);
     const sum = sorted.reduce((acc, v) => acc + v, 0);

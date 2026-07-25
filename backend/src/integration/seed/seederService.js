@@ -1,18 +1,24 @@
+const { merchantRepository, categoryRepository } = require('../../repositories');
 const { merchantFactory } = require('../../merchants');
 const telegramChannelRegistry = require('../../telegramPublishing/channels/telegramChannelRegistry');
 const publishingModeManager = require('../../telegramPublishing/mode/publishingModeManager');
 const featureFlags = require('../../telegramPublishing/mode/featureFlags');
+const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
 
 class SeederService {
   async seedAll() {
     logger.info('[SeederService] Seeding default platform records...');
 
-    // 1. Seed merchant adapters check
+    // 1. Seed merchant adapters & MongoDB records
     try {
       merchantFactory.getAdapter('amazon');
-    } catch (_e) {
-      logger.warn('[SeederService] Default Amazon merchant adapter check warning.');
+      if (mongoose.connection.readyState === 1) {
+        await merchantRepository.findOrCreateBySlug('amazon', 'Amazon India', 'https://www.amazon.in');
+        await categoryRepository.findOrCreateBySlug('electronics', 'Electronics');
+      }
+    } catch (e) {
+      logger.warn(`[SeederService] Default merchant/category seed warning: ${e.message}`);
     }
 
     // 2. Seed default channels
