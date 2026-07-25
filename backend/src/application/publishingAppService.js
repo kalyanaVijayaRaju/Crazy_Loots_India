@@ -24,7 +24,7 @@ class PublishingAppService {
         rating: 4.5,
         reviewCount: 320,
         availability: 'IN_STOCK',
-        image: 'https://m.media-amazon.com/images/I/sample.jpg',
+        image: 'https://m.media-amazon.com/images/I/71V--WZVUIL._SL1500_.jpg',
         productUrl: 'https://www.amazon.in/dp/B08N5WRWNW',
       };
     }
@@ -53,6 +53,8 @@ class PublishingAppService {
       packageId: prep.package.packageId,
       telegramMessage: prep.package.renderedMessages.telegram,
       whatsappMessage: prep.package.renderedMessages.whatsapp,
+      images: prep.package.images,
+      previews: prep.previews,
       mode: publishingModeManager.getMode(),
       previewGeneratedAt: new Date().toISOString(),
     };

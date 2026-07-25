@@ -63,7 +63,11 @@ class RealTelegramClient extends TelegramClientInterface {
     // Attempt direct image buffer upload to bypass Telegram CDN hotlink restriction
     if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
       try {
-        const imgRes = await fetch(photoUrl);
+        const imgRes = await fetch(photoUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        });
         if (imgRes.ok) {
           const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
           if (contentType.includes('image') || contentType.includes('octet-stream')) {
