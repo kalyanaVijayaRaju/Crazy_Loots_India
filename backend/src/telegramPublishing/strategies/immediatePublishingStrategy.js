@@ -1,6 +1,7 @@
 const PublishingStrategyInterface = require('./publishingStrategy.interface');
 const telegramClientFactory = require('../client/telegramClientFactory');
 const featureFlags = require('../mode/featureFlags');
+const telegramFormatter = require('../../telegram/utils/telegramFormatter');
 const logger = require('../../utils/logger');
 
 class ImmediatePublishingStrategy extends PublishingStrategyInterface {
@@ -22,8 +23,9 @@ class ImmediatePublishingStrategy extends PublishingStrategyInterface {
 
     if (photoEnabled && hasPhoto && !context.forceTextMessage) {
       try {
+        const safeCaption = telegramFormatter.truncateCaption(renderedMessage, 1024);
         logger.info(`[ImmediatePublishingStrategy] Dispatching via sendPhoto for task '${publishingTask.taskId}'`);
-        return await client.sendPhoto(targetChannel.channelId, images.socialPreview, renderedMessage, { parse_mode: 'Markdown' });
+        return await client.sendPhoto(targetChannel.channelId, images.socialPreview, safeCaption, { parse_mode: 'Markdown' });
       } catch (photoErr) {
         logger.warn(
           `[ImmediatePublishingStrategy] sendPhoto failed for task '${publishingTask.taskId}': ${photoErr.message}. ` +
@@ -32,8 +34,9 @@ class ImmediatePublishingStrategy extends PublishingStrategyInterface {
       }
     }
 
+    const safeText = telegramFormatter.truncateMessage(renderedMessage, 4096);
     logger.info(`[ImmediatePublishingStrategy] Dispatching via sendMessage for task '${publishingTask.taskId}'`);
-    return client.sendMessage(targetChannel.channelId, renderedMessage, { parse_mode: 'Markdown' });
+    return client.sendMessage(targetChannel.channelId, safeText, { parse_mode: 'Markdown' });
   }
 }
 

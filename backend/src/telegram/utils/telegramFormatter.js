@@ -36,6 +36,38 @@ class TelegramFormatter {
     }
     return `${clean.slice(0, maxLen - 3).trim()}...`;
   }
+
+  /**
+   * Truncate caption for sendPhoto (Telegram limit: 1024 chars)
+   * @param {string} caption
+   * @param {number} maxLen
+   * @returns {string}
+   */
+  truncateCaption(caption, maxLen = 1024) {
+    if (!caption || typeof caption !== 'string') {
+      return '';
+    }
+    if (caption.length <= maxLen) {
+      return caption;
+    }
+    return `${caption.slice(0, maxLen - 4).trim()}...`;
+  }
+
+  /**
+   * Truncate message text for sendMessage (Telegram limit: 4096 chars)
+   * @param {string} text
+   * @param {number} maxLen
+   * @returns {string}
+   */
+  truncateMessage(text, maxLen = 4096) {
+    if (!text || typeof text !== 'string') {
+      return '';
+    }
+    if (text.length <= maxLen) {
+      return text;
+    }
+    return `${text.slice(0, maxLen - 4).trim()}...`;
+  }
 }
 
 module.exports = new TelegramFormatter();
