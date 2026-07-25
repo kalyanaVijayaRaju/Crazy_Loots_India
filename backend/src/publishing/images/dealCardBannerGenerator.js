@@ -7,8 +7,13 @@ class DealCardBannerGenerator {
    * @param {Object} product - Product details { title, image, currentPrice, originalPrice, discountPercentage, rating, availability, metadata }
    * @returns {Promise<Buffer|null>} Image buffer (JPEG)
    */
-  async generateCardBanner(product) {
+  async generateCardBanner(product, images = {}) {
     if (!product || !product.title) {
+      return null;
+    }
+
+    const image = product.image || product.imageUrl || (images && images.socialPreview) || (images && images.original) || (Array.isArray(product.images) ? product.images[0] : null);
+    if (!image) {
       return null;
     }
 
@@ -22,9 +27,8 @@ class DealCardBannerGenerator {
       const origPrice = product.originalPrice || price;
       const discount = product.discountPercentage || (origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0);
       const delivery = (product.metadata && product.metadata.delivery) ? product.metadata.delivery : 'FREE delivery';
-      const seller = (product.metadata && product.metadata.seller) ? product.metadata.seller : 'PARAM TRADERS';
+      const seller = (product.metadata && product.metadata.seller) ? product.metadata.seller : 'Official Seller';
       const availability = product.availability === 'OUT_OF_STOCK' ? 'Out of Stock' : 'In stock';
-      const image = product.image || 'https://m.media-amazon.com/images/I/71V--WZVUIL._SL1500_.jpg';
 
       const html = `<!DOCTYPE html>
 <html>

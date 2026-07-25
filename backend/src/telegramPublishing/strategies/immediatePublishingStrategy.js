@@ -29,7 +29,7 @@ class ImmediatePublishingStrategy extends PublishingStrategyInterface {
 
         if (product) {
           try {
-            const cardBanner = await dealCardBannerGenerator.generateCardBanner(product);
+            const cardBanner = await dealCardBannerGenerator.generateCardBanner(product, images);
             if (cardBanner) {
               photoPayload = cardBanner;
             }
