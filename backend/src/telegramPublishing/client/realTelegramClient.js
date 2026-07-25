@@ -60,6 +60,35 @@ class RealTelegramClient extends TelegramClientInterface {
     logger.info(`[RealTelegramClient] Dispatching Telegram photo to channel '${channelId}' (API Method: sendPhoto)`);
     const env = require('../../config/environment');
 
+    // Support Buffer image payloads (e.g. custom generated product deal cards)
+    if (Buffer.isBuffer(photoUrl)) {
+      try {
+        const formData = new FormData();
+        formData.append('chat_id', channelId);
+        formData.append('caption', caption);
+        if (options.parse_mode) {
+          formData.append('parse_mode', options.parse_mode);
+        }
+        const blob = new Blob([photoUrl], { type: 'image/jpeg' });
+        formData.append('photo', blob, 'product_card.jpg');
+
+        const token = env.TELEGRAM_BOT_TOKEN;
+        const apiUrl = `https://api.telegram.org/bot${token}/sendPhoto`;
+        const resp = await fetch(apiUrl, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await resp.json();
+        if (data && data.ok) {
+          logger.info(`[RealTelegramClient] Telegram custom card photo delivered to '${channelId}' (Message ID: ${data.result?.message_id}) [Status: 200 OK]`);
+          return { ok: true, result: data.result };
+        }
+        logger.warn(`[RealTelegramClient] Buffer photo upload returned non-ok: ${data.description}`);
+      } catch (err) {
+        logger.warn(`[RealTelegramClient] Custom card photo upload failed: ${err.message}`);
+      }
+    }
+
     // Attempt direct image buffer upload to bypass Telegram CDN hotlink restriction
     if (photoUrl && typeof photoUrl === 'string' && photoUrl.startsWith('http')) {
       try {

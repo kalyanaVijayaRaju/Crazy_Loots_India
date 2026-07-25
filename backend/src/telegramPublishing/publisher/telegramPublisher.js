@@ -80,6 +80,8 @@ class TelegramPublisher {
         targetChannel,
         renderedMessage: textMessage,
         images: publishingPackage.images,
+        product: publishingPackage.product,
+        deal: publishingPackage.deal,
       };
 
       const dispatchResult = await strategy.execute(currentTask, context);
